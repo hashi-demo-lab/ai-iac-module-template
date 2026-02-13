@@ -6,7 +6,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/tf-plan` command. See `.foundations/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/tf-plan` command.
 
 ## Summary
 
@@ -34,19 +34,13 @@
 
 | Resource Type | Logical Name | Purpose | Conditional |
 |---------------|-------------|---------|-------------|
-| `aws_vpc` | `this` | Primary VPC | No |
-| `aws_subnet` | `public` | Public subnets (one per AZ) | No |
-| `aws_subnet` | `private` | Private subnets (one per AZ) | No |
-| `aws_internet_gateway` | `this` | Internet access for public subnets | No |
-| `aws_nat_gateway` | `this` | Outbound internet for private subnets | Yes - `var.enable_nat_gateway` |
-| [Add more resources as needed] | | | |
+| `{{RESOURCE_TYPE}}` | `{{LOGICAL_NAME}}` | [Resource purpose] | {{CONDITIONAL}} |
 
 ### Data Sources
 
 | Data Source | Purpose |
 |-------------|---------|
-| `aws_availability_zones` | Discover available AZs in region |
-| [Add more as needed] | |
+| `{{DATA_SOURCE}}` | [Data source purpose] |
 
 ### Submodules (if applicable)
 
