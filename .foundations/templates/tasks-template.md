@@ -68,10 +68,10 @@ description: "Task list template for Terraform module implementation"
 
 Examples of foundational tasks (adjust based on your module):
 
-- [ ] T006 Define core input variables in `variables.tf` (e.g., CIDR block, name, tags)
-- [ ] T007 Implement primary resource in `main.tf` (e.g., `aws_vpc`)
-- [ ] T008 Implement essential dependent resources in `main.tf` (e.g., `aws_internet_gateway`)
-- [ ] T009 Define core outputs in `outputs.tf` (e.g., VPC ID, ARN)
+- [ ] T006 Define core input variables in `variables.tf`
+- [ ] T007 Implement primary resource in `main.tf`
+- [ ] T008 Implement essential dependent resources in `main.tf`
+- [ ] T009 Define core outputs in `outputs.tf`
 - [ ] T010 Add `locals.tf` for computed values and common tag merging
 
 **Checkpoint**: Core module resources created - `terraform validate` passes, `terraform plan` shows expected resources
@@ -89,17 +89,15 @@ Examples of foundational tasks (adjust based on your module):
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T011 [US1] Write test for basic module configuration in `tests/basic.tftest.hcl`
-- [ ] T012 [US1] Write test assertions for expected resource outputs (e.g., VPC ID not empty, subnet count matches input)
+- [ ] T012 [US1] Write test assertions for expected resource outputs
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Add subnet variables to `variables.tf` (e.g., public/private subnet CIDRs, AZ list)
-- [ ] T014 [US1] Implement `aws_subnet` resources in `main.tf` for public subnets
-- [ ] T015 [US1] Implement `aws_subnet` resources in `main.tf` for private subnets
-- [ ] T016 [US1] Implement `aws_route_table` and `aws_route_table_association` resources
-- [ ] T017 [US1] Add subnet outputs to `outputs.tf` (subnet IDs, CIDR blocks)
-- [ ] T018 [US1] Update `examples/basic/main.tf` with working example configuration
-- [ ] T019 [US1] Verify tests pass: `terraform test -filter=tests/basic.tftest.hcl`
+- [ ] T013 [US1] Add feature variables to `variables.tf`
+- [ ] T014 [US1] Implement feature resources in `main.tf`
+- [ ] T015 [US1] Add feature outputs to `outputs.tf`
+- [ ] T016 [US1] Update `examples/basic/main.tf` with working example configuration
+- [ ] T017 [US1] Verify tests pass: `terraform test -filter=tests/basic.tftest.hcl`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -113,16 +111,16 @@ Examples of foundational tasks (adjust based on your module):
 
 ### Tests for User Story 2 (MANDATORY)
 
-- [ ] T020 [US2] Write test for feature configuration in `tests/complete.tftest.hcl`
-- [ ] T021 [US2] Write test assertions for expected resource outputs
+- [ ] T018 [US2] Write test for feature configuration in `tests/complete.tftest.hcl`
+- [ ] T019 [US2] Write test assertions for expected resource outputs
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Add feature variables to `variables.tf` (e.g., `enable_nat_gateway`)
-- [ ] T023 [US2] Implement feature resources in `main.tf` (e.g., `aws_nat_gateway`, `aws_eip`)
-- [ ] T024 [US2] Add feature outputs to `outputs.tf`
-- [ ] T025 [US2] Update `examples/complete/main.tf` with feature enabled
-- [ ] T026 [US2] Verify tests pass: `terraform test`
+- [ ] T020 [US2] Add feature variables to `variables.tf`
+- [ ] T021 [US2] Implement feature resources in `main.tf`
+- [ ] T022 [US2] Add feature outputs to `outputs.tf`
+- [ ] T023 [US2] Update `examples/complete/main.tf` with feature enabled
+- [ ] T024 [US2] Verify tests pass: `terraform test`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -136,14 +134,14 @@ Examples of foundational tasks (adjust based on your module):
 
 ### Tests for User Story 3 (MANDATORY)
 
-- [ ] T027 [US3] Write test for feature configuration in `tests/[feature].tftest.hcl`
-- [ ] T028 [US3] Write test assertions for expected resource outputs
+- [ ] T025 [US3] Write test for feature configuration in `tests/[feature].tftest.hcl`
+- [ ] T026 [US3] Write test assertions for expected resource outputs
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Add feature variables to `variables.tf`
-- [ ] T030 [US3] Implement feature resources in `main.tf`
-- [ ] T031 [US3] Add feature outputs to `outputs.tf`
+- [ ] T027 [US3] Add feature variables to `variables.tf`
+- [ ] T028 [US3] Implement feature resources in `main.tf`
+- [ ] T029 [US3] Add feature outputs to `outputs.tf`
 
 **Checkpoint**: All user stories should now be independently functional
 

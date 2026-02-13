@@ -1,7 +1,10 @@
+<!-- Placeholder convention: [BRACKETS] = human-authored content (instructions, descriptions).
+     {{DOUBLE_BRACES}} = machine-filled values (timestamps, scores, IDs). -->
+
 # Remediation Log
 
-## Iteration <N>
+## Iteration {{ITERATION_NUMBER}}
 
 | Finding ID | Severity | Files Changed (ALL) | What Changed | Verified In |
 |------------|----------|---------------------|--------------|-------------|
-| E1 | HIGH | tasks.md | Added task T012 for auto-scaling | consistency-analysis.md iteration 2 |
+| {{FINDING_ID}} | {{SEVERITY}} | {{FILES_CHANGED}} | [Description of change] | {{VERIFICATION_REFERENCE}} |
