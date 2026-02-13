@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>/tf-implement Workflow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #fff;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 48px 72px 40px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 36px;
+  }
+  h1 { font-size: 44px; font-weight: 700; color: #1a1a2e; }
+  .subtitle { font-size: 20px; color: #6b7280; }
+  .legend {
+    display: flex;
+    gap: 24px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: #4b5563;
+  }
+  .sw { width: 18px; height: 18px; flex-shrink: 0; }
+  .sw-skill  { background: #d5f5e3; border: 2px solid #27ae60; border-radius: 10px; }
+  .sw-agent  { background: #d4e6f1; border: 2px solid #2980b9; border-radius: 3px; }
+  .sw-script { background: #e8daef; border: 2px solid #8e44ad; border-radius: 2px; }
+
+  /* ── Layout: 2 rows + compound ── */
+  .rows { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+
+  .row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex: 1;
+  }
+
+  /* ── Phase card ── */
+  .phase {
+    border: 2px solid #d1d5db;
+    border-radius: 14px;
+    background: #f9fafb;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .ph {
+    background: #374151;
+    color: #fff;
+    padding: 12px 20px;
+    font-size: 17px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .pb {
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  /* ── Nodes ── */
+  .n {
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .n-skill {
+    background: #d5f5e3;
+    border: 2px solid #27ae60;
+    border-radius: 22px;
+    color: #1a5e2a;
+  }
+  .n-agent {
+    background: #d4e6f1;
+    border: 2px solid #2980b9;
+    border-radius: 6px;
+    color: #1a4971;
+  }
+  .n-script {
+    background: #e8daef;
+    border: 2px solid #8e44ad;
+    border-radius: 3px;
+    color: #5b2c6f;
+  }
+  .n-script-sm {
+    background: #e8daef;
+    border: 1.5px solid #8e44ad;
+    border-radius: 3px;
+    color: #5b2c6f;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── Pairs / layout helpers ── */
+  .pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ms {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+  }
+  .arr  { color: #9ca3af; font-size: 18px; flex-shrink: 0; text-align: center; }
+  .arrv { color: #9ca3af; font-size: 16px; text-align: center; line-height: 1; }
+
+  /* ── Connectors ── */
+  .conn {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    justify-content: center;
+  }
+  .conn svg { overflow: visible; }
+
+  .turn {
+    display: flex;
+    justify-content: flex-end;
+    padding-right: 40px;
+  }
+  .turn svg { overflow: visible; }
+
+  /* ── Entry node ── */
+  .entry-wrap {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding-right: 8px;
+  }
+  .entry-node {
+    background: #d5f5e3;
+    border: 3px solid #27ae60;
+    border-radius: 28px;
+    padding: 16px 32px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1a2e;
+    white-space: nowrap;
+  }
+
+  /* ── Compound learning ── */
+  .compound {
+    border: 2px solid #d1d5db;
+    border-radius: 14px;
+    background: #f9fafb;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .compound .ph {
+    background: #4b5563;
+  }
+  .compound-body {
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .compound-agents {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+  }
+  .c-agent {
+    padding: 10px 18px;
+    background: #d4e6f1;
+    border: 2px solid #2980b9;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a4971;
+    text-align: center;
+    line-height: 1.35;
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Header -->
+  <div class="top-bar">
+    <div>
+      <h1>/tf-implement Workflow</h1>
+      <span class="subtitle">Spec-Driven Development &mdash; Implementation Phase</span>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="sw sw-skill"></div>Skill</div>
+      <div class="legend-item"><div class="sw sw-agent"></div>Agent</div>
+      <div class="legend-item"><div class="sw sw-script"></div>Script</div>
+    </div>
+  </div>
+
+  <div class="rows">
+
+    <!-- ═══ ROW 1: Entry → Phase 1 → Phase 2 → Phase 3 ═══ -->
+    <div class="row">
+
+      <!-- Entry -->
+      <div class="entry-wrap">
+        <div class="entry-node">/tf-implement</div>
+      </div>
+
+      <div class="conn">
+        <svg width="36" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="#9ca3af" stroke-width="2"/><polygon points="28,1 22,-4 22,6" fill="#9ca3af"/></svg>
+      </div>
+
+      <!-- Phase 1 — Prerequisites -->
+      <div class="phase" style="flex:0.8">
+        <div class="ph">Phase 1 &mdash; Prerequisites</div>
+        <div class="pb">
+          <div class="n n-script">validate-env.sh</div>
+          <div class="arrv">&darr;</div>
+          <div class="n n-script">check-prerequisites.sh</div>
+        </div>
+      </div>
+
+      <div class="conn">
+        <svg width="36" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="#9ca3af" stroke-width="2"/><polygon points="28,1 22,-4 22,6" fill="#9ca3af"/></svg>
+      </div>
+
+      <!-- Phase 2 — Task Execution -->
+      <div class="phase" style="flex:1.2">
+        <div class="ph">Phase 2 &mdash; Task Execution</div>
+        <div class="pb">
+          <div class="pair">
+            <div class="ms">
+              <div class="n n-skill" style="font-size:13px">terraform-style-guide</div>
+              <div class="n n-skill" style="font-size:13px">tf-implementation-patterns</div>
+            </div>
+            <span class="arr">&rarr;</span>
+            <div class="n n-agent">tf-task-executor <span style="font-size:12px;color:#4a6fa5">&times;N</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn">
+        <svg width="36" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="#9ca3af" stroke-width="2"/><polygon points="28,1 22,-4 22,6" fill="#9ca3af"/></svg>
+      </div>
+
+      <!-- Phase 3 — Design Review -->
+      <div class="phase" style="flex:1.4">
+        <div class="ph">Phase 3 &mdash; Design Review</div>
+        <div class="pb">
+          <div class="pair">
+            <div class="n n-skill" style="font-size:13px">tf-security-baselines</div>
+            <span class="arr">&rarr;</span>
+            <div class="n n-agent">aws-security-advisor</div>
+          </div>
+          <div style="height:6px"></div>
+          <div class="pair">
+            <div class="ms">
+              <div class="n n-skill" style="font-size:13px">tf-judge-criteria</div>
+              <div class="n n-skill" style="font-size:13px">terraform-style-guide</div>
+            </div>
+            <span class="arr">&rarr;</span>
+            <div class="n n-agent">code-quality-judge</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ Turn arrow ═══ -->
+    <div class="turn">
+      <svg width="60" height="28">
+        <path d="M 30 2 L 30 14 L 4 14" stroke="#9ca3af" stroke-width="2" fill="none"/>
+        <polygon points="4,14 10,9 10,19" fill="#9ca3af"/>
+      </svg>
+    </div>
+
+    <!-- ═══ ROW 2: Phase 4 → Phase 5 → Phase 6 ═══ -->
+    <div class="row">
+
+      <!-- Phase 4 — Deploy -->
+      <div class="phase" style="flex:0.7">
+        <div class="ph">Phase 4 &mdash; Deploy</div>
+        <div class="pb">
+          <div class="n n-agent">tf-deployer</div>
+        </div>
+      </div>
+
+      <div class="conn">
+        <svg width="36" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="#9ca3af" stroke-width="2"/><polygon points="28,1 22,-4 22,6" fill="#9ca3af"/></svg>
+      </div>
+
+      <!-- Phase 5 — Report -->
+      <div class="phase" style="flex:1">
+        <div class="ph">Phase 5 &mdash; Report</div>
+        <div class="pb">
+          <div class="pair">
+            <div class="n n-skill" style="font-size:13px">tf-report-template</div>
+            <span class="arr">&rarr;</span>
+            <div class="n n-agent">tf-report-generator</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn">
+        <svg width="36" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="#9ca3af" stroke-width="2"/><polygon points="28,1 22,-4 22,6" fill="#9ca3af"/></svg>
+      </div>
+
+      <!-- Phase 6 — Push + PR -->
+      <div class="phase" style="flex:0.8">
+        <div class="ph">Phase 6 &mdash; Push + PR</div>
+        <div class="pb">
+          <div class="n n-skill">Push + PR</div>
+          <div style="margin-top:6px">
+            <span class="n-script-sm">post-issue-progress.sh</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ Arrow down to compound ═══ -->
+    <div style="text-align:center;color:#9ca3af;font-size:20px">&darr;</div>
+
+    <!-- ═══ COMPOUND LEARNING ═══ -->
+    <div class="compound">
+      <div class="ph">Compound Learning</div>
+      <div class="compound-body">
+        <div class="n n-skill" style="font-size:14px;flex-shrink:0">tf-compound-patterns</div>
+        <span class="arr">&rarr;</span>
+        <div class="compound-agents">
+          <div class="c-agent">pattern-<br>extractor</div>
+          <div class="c-agent">pitfall-<br>recorder</div>
+          <div class="c-agent">agents-<br>updater</div>
+          <div class="c-agent">constitution-<br>reviewer</div>
+          <div class="c-agent">template-<br>improver</div>
+        </div>
+        <span class="arr">&rarr;</span>
+        <div class="n-script-sm" style="flex-shrink:0">checkpoint-commit.sh</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

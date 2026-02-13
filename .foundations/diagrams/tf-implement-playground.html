@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tf-implement Workflow Map</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a12;
+    color: #e0dfe6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  :root {
+    --neon-pink: #ff2d7b;
+    --neon-cyan: #00f0ff;
+    --neon-purple: #b44dff;
+    --neon-green: #39ff8e;
+    --neon-orange: #ff9d2e;
+    --neon-yellow: #ffe14d;
+    --neon-ice: #a8c8ff;
+    --neon-red: #ff4444;
+    --dim: 0.15;
+    --phase-bg: rgba(255,255,255,0.03);
+    --border-subtle: rgba(255,255,255,0.06);
+  }
+
+  /* Shared node styles */
+  .node {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    cursor: pointer;
+    margin: 2px 1px;
+    border: 1px solid transparent;
+    transition: all 0.25s ease;
+    position: relative;
+    white-space: nowrap;
+  }
+  .node:hover { transform: translateY(-1px); }
+  .node-agent { background: rgba(255,45,123,0.1); border-color: rgba(255,45,123,0.3); color: var(--neon-pink); }
+  .node-agent:hover, .node-agent.active { background: rgba(255,45,123,0.22); border-color: var(--neon-pink); box-shadow: 0 0 14px rgba(255,45,123,0.3); }
+  .node-skill { background: rgba(0,240,255,0.07); border-color: rgba(0,240,255,0.22); color: var(--neon-cyan); }
+  .node-skill:hover, .node-skill.active { background: rgba(0,240,255,0.17); border-color: var(--neon-cyan); box-shadow: 0 0 14px rgba(0,240,255,0.3); }
+  .node-template { background: rgba(180,77,255,0.07); border-color: rgba(180,77,255,0.22); color: var(--neon-purple); }
+  .node-template:hover, .node-template.active { background: rgba(180,77,255,0.17); border-color: var(--neon-purple); box-shadow: 0 0 14px rgba(180,77,255,0.3); }
+  .node-script { background: rgba(57,255,142,0.07); border-color: rgba(57,255,142,0.22); color: var(--neon-green); }
+  .node-script:hover, .node-script.active { background: rgba(57,255,142,0.17); border-color: var(--neon-green); box-shadow: 0 0 14px rgba(57,255,142,0.3); }
+  .node-artifact { background: rgba(255,157,46,0.07); border-color: rgba(255,157,46,0.22); color: var(--neon-orange); }
+  .node-artifact:hover, .node-artifact.active { background: rgba(255,157,46,0.17); border-color: var(--neon-orange); box-shadow: 0 0 14px rgba(255,157,46,0.3); }
+  .node-mcp { background: rgba(255,225,77,0.07); border-color: rgba(255,225,77,0.22); color: var(--neon-yellow); }
+  .node-mcp:hover, .node-mcp.active { background: rgba(255,225,77,0.17); border-color: var(--neon-yellow); box-shadow: 0 0 14px rgba(255,225,77,0.3); }
+  .node-ref { background: rgba(168,200,255,0.07); border-color: rgba(168,200,255,0.25); color: var(--neon-ice); }
+  .node-ref:hover, .node-ref.active { background: rgba(168,200,255,0.18); border-color: var(--neon-ice); box-shadow: 0 0 14px rgba(168,200,255,0.3); }
+  .node-cmd { background: rgba(255,68,68,0.07); border-color: rgba(255,68,68,0.22); color: var(--neon-red); }
+  .node-cmd:hover, .node-cmd.active { background: rgba(255,68,68,0.17); border-color: var(--neon-red); box-shadow: 0 0 14px rgba(255,68,68,0.3); }
+
+  /* Dimming */
+  body.has-selection .node.dimmed { opacity: var(--dim); }
+  body.has-selection .phase.dimmed { opacity: var(--dim); }
+  body.has-selection .sl-cell.dimmed { opacity: var(--dim); }
+  body.has-selection .df-step.dimmed { opacity: var(--dim); }
+  body.has-selection .pl-phase.dimmed { opacity: var(--dim); }
+
+  /* ============ ANIMATED ARROWS ============ */
+  @keyframes flow-right {
+    0% { transform: translateX(-4px); opacity: 0.25; }
+    50% { transform: translateX(4px); opacity: 1; }
+    100% { transform: translateX(-4px); opacity: 0.25; }
+  }
+  @keyframes gradient-flow-right {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes gradient-flow-down {
+    0% { background-position: center -200%; }
+    100% { background-position: center 200%; }
+  }
+  @keyframes dash-flow {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: -20; }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+    50% { filter: drop-shadow(0 0 8px currentColor); }
+  }
+  @keyframes sl-flow {
+    0% { opacity: 0; transform: translateX(-6px); }
+    30% { opacity: 0.5; }
+    70% { opacity: 0.5; }
+    100% { opacity: 0; transform: translateX(6px); }
+  }
+
+  /* ============ HEADER ============ */
+  #header { text-align: center; padding: 16px 0 6px; }
+  #header h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+    background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #header p { font-size: 11px; color: #555; margin-top: 2px; letter-spacing: 1px; }
+
+  /* Legend */
+  #legend { display: flex; justify-content: center; gap: 18px; padding: 6px 0 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #777; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* ============ PHASE GRID ============ */
+  #grid-section { position: relative; }
+  #grid-section svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+  #grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    max-width: 1400px; margin: 0 auto; padding: 0 24px 16px; position: relative; z-index: 2;
+  }
+  .phase {
+    background: var(--phase-bg); border: 1px solid var(--border-subtle); border-radius: 7px;
+    padding: 12px; transition: opacity 0.25s ease, border-color 0.25s ease;
+  }
+  .phase.phase-active { border-color: rgba(255,255,255,0.15); }
+  .phase-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-bottom: 3px; }
+  .phase-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-subtle); }
+  .artifacts-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .artifacts-row-label { font-size: 7.5px; letter-spacing: 1px; text-transform: uppercase; color: #333; margin-top: 6px; margin-bottom: 1px; }
+  .phase-note { font-size: 8.5px; color: #444; margin-top: 4px; font-style: italic; }
+
+  /* ============ SECTION DIVIDER ============ */
+  .section-divider {
+    max-width: 1400px; margin: 8px auto 0; padding: 0 24px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  /* ============ FLOW TABS ============ */
+  #flow-tabs {
+    display: flex; justify-content: center; gap: 2px; padding: 14px 24px 10px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .flow-tab {
+    padding: 6px 18px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: #555; cursor: pointer; border: 1px solid var(--border-subtle); border-radius: 4px;
+    background: transparent; transition: all 0.2s ease;
+  }
+  .flow-tab:hover { color: #999; border-color: rgba(255,255,255,0.12); }
+  .flow-tab.active { color: var(--neon-cyan); border-color: rgba(0,240,255,0.4); background: rgba(0,240,255,0.05); }
+
+  .flow-view { display: none; max-width: 1400px; margin: 0 auto; padding: 0 24px 80px; }
+  .flow-view.active { display: block; }
+
+  /* ============ PIPELINE VIEW ============ */
+  #pipeline { position: relative; }
+  .pl-container {
+    display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 8px 0;
+  }
+  .pl-phase {
+    flex: 1; min-width: 155px; background: var(--phase-bg); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 10px; text-align: center; transition: opacity 0.25s ease;
+  }
+  .pl-phase.phase-active { border-color: rgba(255,255,255,0.15); }
+  .pl-num { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: #444; }
+  .pl-name { font-size: 11px; font-weight: 600; margin: 3px 0 8px; }
+  .pl-agents { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-bottom: 6px; }
+  .pl-output { border-top: 1px solid var(--border-subtle); padding-top: 6px; margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .pl-arrow {
+    display: flex; align-items: center; justify-content: center; min-width: 32px;
+    flex-shrink: 0; align-self: center; padding-top: 20px; position: relative;
+  }
+  .pl-arrow-line {
+    width: 32px; height: 2px; position: relative; overflow: visible;
+  }
+  .pl-arrow-line::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, rgba(0,240,255,0.05), rgba(0,240,255,0.4), rgba(0,240,255,0.05));
+    background-size: 200% 100%;
+    animation: gradient-flow-right 2s linear infinite;
+    border-radius: 1px;
+  }
+  .pl-arrow-head {
+    position: absolute; right: -2px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid rgba(0,240,255,0.5);
+    animation: pulse-glow 2s ease-in-out infinite;
+    color: var(--neon-cyan);
+  }
+  .pl-parallel { font-size: 8px; color: #555; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .pl-loop { font-size: 7.5px; color: var(--neon-ice); letter-spacing: 0.5px; margin-top: 2px; opacity: 0.7; }
+  .pl-optional { font-size: 7.5px; color: var(--neon-purple); letter-spacing: 0.5px; margin-top: 2px; opacity: 0.7; }
+
+  /* ============ SWIMLANE VIEW ============ */
+  #swimlane { position: relative; }
+  .sl-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(6, 1fr);
+    grid-template-rows: auto;
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .sl-header {
+    background: rgba(255,255,255,0.04); padding: 7px 6px; font-size: 9px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: #555; text-align: center;
+    font-weight: 600; position: relative;
+  }
+  .sl-header:not(:first-child):not(:last-child)::after {
+    content: '';
+    position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 5px solid rgba(0,240,255,0.2);
+    animation: sl-flow 2.5s ease-in-out infinite;
+    z-index: 2;
+  }
+  .sl-label {
+    background: rgba(255,255,255,0.02); padding: 8px 6px; font-size: 9px;
+    letter-spacing: 1px; text-transform: uppercase; text-align: right; color: #444;
+    display: flex; align-items: flex-start; justify-content: flex-end; padding-top: 10px;
+  }
+  .sl-cell {
+    background: #0a0a12; padding: 6px; display: flex; flex-direction: column; gap: 3px;
+    align-items: flex-start; min-height: 38px; transition: opacity 0.25s ease;
+  }
+  .sl-cell .node { font-size: 9px; padding: 3px 6px; }
+  .sl-empty { background: rgba(255,255,255,0.01); }
+
+  /* ============ DATA FLOW VIEW ============ */
+  #dataflow { position: relative; }
+  .df-container { position: relative; padding: 10px 0; }
+  .df-step {
+    display: flex; align-items: center; gap: 12px; margin: 6px 0; padding: 8px 14px;
+    background: var(--phase-bg); border: 1px solid var(--border-subtle); border-radius: 6px;
+    transition: opacity 0.25s ease, border-color 0.25s ease;
+  }
+  .df-step.phase-active { border-color: rgba(255,255,255,0.15); }
+  .df-phase-label {
+    font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: #444;
+    writing-mode: vertical-lr; text-orientation: mixed; transform: rotate(180deg);
+    min-width: 14px; text-align: center;
+  }
+  .df-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .df-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .df-label { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: #444; min-width: 52px; }
+  .df-arrow-down {
+    text-align: center; color: #333; font-size: 14px; margin: 0; line-height: 1;
+    position: relative; height: 24px; display: flex; align-items: center; justify-content: center;
+  }
+  .df-arrow-down::before {
+    content: '';
+    position: absolute; left: 50%; top: 0; bottom: 8px; width: 2px; transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(0,240,255,0.05), rgba(0,240,255,0.35), rgba(0,240,255,0.05));
+    background-size: 100% 200%;
+    animation: gradient-flow-down 2s linear infinite;
+  }
+  .df-arrow-down::after {
+    content: '';
+    position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid rgba(0,240,255,0.4);
+    animation: pulse-glow 2s ease-in-out infinite;
+    color: var(--neon-cyan);
+  }
+  .df-artifact-flow {
+    display: flex; align-items: center; gap: 6px; padding: 3px 0;
+  }
+  .df-flow-line {
+    flex: 1; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,157,46,0.15), rgba(255,157,46,0.4), rgba(255,157,46,0.15), transparent);
+    background-size: 200% 100%;
+    animation: gradient-flow-right 3s linear infinite;
+    border-radius: 1px;
+  }
+  .df-reads-label { font-size: 8px; color: #555; letter-spacing: 0.5px; white-space: nowrap; }
+  .df-loop-indicator {
+    display: flex; align-items: center; gap: 6px; padding: 3px 0;
+  }
+  .df-loop-line {
+    flex: 1; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(168,200,255,0.15), rgba(168,200,255,0.4), rgba(168,200,255,0.15), transparent);
+    background-size: 200% 100%;
+    animation: gradient-flow-right 3s linear infinite;
+    border-radius: 1px;
+  }
+  .df-loop-label { font-size: 8px; color: var(--neon-ice); letter-spacing: 0.5px; opacity: 0.7; }
+
+  /* ============ DETAIL BAR ============ */
+  #detail {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,18,0.95); border-top: 1px solid var(--border-subtle);
+    padding: 8px 24px; z-index: 10; display: flex; align-items: center; gap: 14px;
+    min-height: 40px; backdrop-filter: blur(12px); transition: opacity 0.25s ease;
+  }
+  #detail.empty { opacity: 0.4; }
+  #detail-name { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; font-weight: 600; }
+  #detail-type { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; border: 1px solid; }
+  #detail-desc { font-size: 10.5px; color: #777; flex: 1; }
+  #detail-hint { font-size: 9px; color: #383838; letter-spacing: 0.5px; }
+
+  /* ============ EDGE LEGEND ============ */
+  #edge-legend {
+    display: flex; justify-content: center; gap: 24px; padding: 6px 0 2px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .edge-legend-item {
+    display: flex; align-items: center; gap: 6px; font-size: 9px;
+    letter-spacing: 0.5px; text-transform: uppercase; color: #555;
+  }
+  .edge-legend-line {
+    width: 32px; height: 2px; border-radius: 1px; position: relative;
+  }
+  .edge-legend-line.input-line {
+    background: rgba(0,240,255,0.5);
+    border: none;
+    background-image: repeating-linear-gradient(90deg, rgba(0,240,255,0.5) 0, rgba(0,240,255,0.5) 6px, transparent 6px, transparent 10px);
+    background-color: transparent;
+  }
+  .edge-legend-line.output-line {
+    background: rgba(255,157,46,0.6);
+  }
+  .edge-legend-arrow {
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .edge-legend-arrow.input-arrow { border-left: 6px solid rgba(0,240,255,0.6); }
+  .edge-legend-arrow.output-arrow { border-left: 6px solid rgba(255,157,46,0.7); }
+  .edge-legend-note { font-size: 8px; color: #444; font-style: italic; }
+
+  @media (max-width: 1100px) {
+    #grid { grid-template-columns: 1fr 1fr; }
+    .sl-grid { grid-template-columns: 60px repeat(6, 1fr); }
+    .sl-cell .node { font-size: 7.5px; padding: 2px 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>/tf-implement</h1>
+  <p>Implementation Orchestrator Workflow Map</p>
+</div>
+
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-pink)"></div>Agent</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-cyan)"></div>Skill</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-purple)"></div>Template</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-green)"></div>Script</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-orange)"></div>Artifact</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-yellow)"></div>MCP</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neon-red)"></div>Command</div>
+  <div class="legend-item" style="margin-left:8px;border-left:1px solid var(--border-subtle);padding-left:14px">
+    <span style="font-size:9px;color:#555;letter-spacing:0.5px">Follows /tf-plan &rarr; Produces deployable module + PR</span>
+  </div>
+</div>
+
+<!-- ============ PHASE GRID ============ -->
+<div id="grid-section">
+  <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="grid">
+    <!-- Phase 1: Prerequisites -->
+    <div class="phase" data-phase="1">
+      <div class="phase-label">Phase 1</div>
+      <div class="phase-title">Prerequisites</div>
+      <div class="node node-script" data-id="validate-env" data-type="script" data-desc="validate-env.sh &mdash; Validates TFE_TOKEN, AWS credentials, GH_CLI (GATE checks). WARN checks: tflint, pre-commit.">validate-env.sh</div>
+      <div class="node node-script" data-id="post-issue" data-type="script" data-desc="post-issue-progress.sh &mdash; Posts progress updates to linked GitHub issue before/after EVERY phase (cross-phase)" style="border-style:dashed">post-issue-progress.sh<span style="font-size:7px;opacity:0.7;margin-left:3px">ALL PHASES</span></div>
+      <div class="node node-cmd" data-id="git-branch" data-type="cmd" data-desc="git rev-parse --abbrev-ref HEAD &mdash; Resolves current branch to derive FEATURE_DIR=specs/&lt;branch&gt;">git rev-parse</div>
+      <div class="artifacts-row-label">Reads (from /tf-plan)</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="spec-md" data-type="artifact" data-desc="spec.md &mdash; Module specification produced by /tf-plan. Read-only input to tf-implement.">spec.md</div>
+        <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md &mdash; Implementation plan produced by /tf-plan. Read-only input.">plan.md</div>
+        <div class="node node-artifact" data-id="tasks-md" data-type="artifact" data-desc="tasks.md &mdash; Phased task checklist produced by /tf-plan. Updated in-place by tf-task-executor (marks [X]).">tasks.md</div>
+      </div>
+      <div class="phase-note">GATE: validate-env.sh must exit 0. Artifacts must exist.</div>
+    </div>
+
+    <!-- Phase 2: Implementation -->
+    <div class="phase" data-phase="2">
+      <div class="phase-label">Phase 2</div>
+      <div class="phase-title">Implementation</div>
+      <div class="node node-agent" data-id="tf-task-executor" data-type="agent" data-desc="tf-task-executor &mdash; Executes individual tasks from tasks.md. Writes module resources, variables, outputs, tests, examples. Marks tasks [X] on completion. Runs in PARALLEL (multiple concurrent instances).">tf-task-executor (xN)</div>
+      <div class="node node-skill" data-id="terraform-style-guide" data-type="skill" data-desc="terraform-style-guide &mdash; HCL code generation strategy, file organization, formatting, variable/output conventions. Loaded by tf-task-executor.">terraform-style-guide</div>
+      <div class="node node-skill" data-id="tf-implementation-patterns" data-type="skill" data-desc="tf-implementation-patterns &mdash; AWS resource patterns (VPC, IAM, S3, etc.), dynamic blocks, conditional creation, secure defaults. Loaded by tf-task-executor.">tf-implementation-patterns</div>
+      <div class="node node-mcp" data-id="mcp-terraform" data-type="mcp" data-desc="terraform-mcp &mdash; Registry search: modules, providers, policies. Used by tf-task-executor.">terraform-mcp</div>
+      <div class="node node-mcp" data-id="mcp-aws-docs" data-type="mcp" data-desc="aws-knowledge-mcp &mdash; AWS documentation search and retrieval. Used by tf-task-executor.">aws-knowledge-mcp</div>
+      <div class="artifacts-row-label">Outputs</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files &mdash; main.tf, variables.tf, outputs.tf, locals.tf, versions.tf. The Terraform module code.">*.tf files</div>
+        <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="tests/*.tftest.hcl &mdash; Unit and integration test files for the module.">tests/*.tftest.hcl</div>
+        <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="examples/basic/ &mdash; Example configuration demonstrating module usage.">examples/basic/</div>
+        <div class="node node-artifact" data-id="tasks-md-updated" data-type="artifact" data-desc="tasks.md &mdash; Updated with completed tasks marked [X]. Same file, modified in-place.">tasks.md [X]</div>
+      </div>
+      <div class="phase-note">Multiple concurrent tf-task-executor agents run in parallel</div>
+    </div>
+
+    <!-- Phase 3: Testing -->
+    <div class="phase" data-phase="3">
+      <div class="phase-label">Phase 3</div>
+      <div class="phase-title">Testing</div>
+      <div class="node node-cmd" data-id="tf-fmt" data-type="cmd" data-desc="terraform fmt -check &mdash; Validates HCL formatting on root module. Must pass.">terraform fmt -check</div>
+      <div class="node node-cmd" data-id="tf-validate" data-type="cmd" data-desc="terraform validate &mdash; Validates module configuration syntax and internal consistency.">terraform validate</div>
+      <div class="node node-cmd" data-id="tf-test" data-type="cmd" data-desc="terraform test &mdash; Executes all .tftest.hcl files. Runs unit tests (mock providers) and integration tests.">terraform test</div>
+      <div class="node node-cmd" data-id="tf-example-plan" data-type="cmd" data-desc="cd examples/basic && terraform init && terraform plan &mdash; Verifies example configuration plans successfully.">example: init + plan</div>
+      <div class="node node-skill" data-id="terraform-test-skill" data-type="skill" data-desc="terraform-test &mdash; Test writing guide: .tftest.hcl syntax, run blocks, assert blocks, mock providers, state keys. Referenced during test fixes.">terraform-test</div>
+      <div class="artifacts-row-label">Reads</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files &mdash; Module code under test">*.tf files</div>
+        <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="tests/*.tftest.hcl &mdash; Test files">tests/*.tftest.hcl</div>
+        <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="examples/basic/ &mdash; Example config">examples/basic/</div>
+      </div>
+      <div class="phase-note">If tests fail: fix issues and re-run (loop until green)</div>
+    </div>
+
+    <!-- Phase 4: Quality Review -->
+    <div class="phase" data-phase="4">
+      <div class="phase-label">Phase 4</div>
+      <div class="phase-title">Quality Review</div>
+      <div class="node node-agent" data-id="code-quality-judge" data-type="agent" data-desc="code-quality-judge &mdash; Evaluates module quality across 6 dimensions: Structure (25%), Security (30%), Code Quality (15%), Variables/Outputs (10%), Testing (10%), Constitution (10%). Security &lt;5.0 forces 'Not Production Ready'.">code-quality-judge</div>
+      <div class="node node-skill" data-id="tf-judge-criteria" data-type="skill" data-desc="tf-judge-criteria &mdash; Scoring rubrics, 6 evaluation dimensions, severity classification (CRITICAL/HIGH/MEDIUM/LOW), evidence requirements. Loaded by code-quality-judge.">tf-judge-criteria</div>
+      <div class="node node-skill" data-id="terraform-style-guide-judge" data-type="skill" data-desc="terraform-style-guide &mdash; HCL conventions validated during quality review. Loaded by code-quality-judge.">terraform-style-guide</div>
+      <div class="node node-mcp" data-id="mcp-terraform-judge" data-type="mcp" data-desc="terraform-mcp (search_providers, get_latest_provider_version) &mdash; Validates provider version usage.">terraform-mcp</div>
+      <div class="artifacts-row-label">Reads</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files &mdash; Module code to evaluate">*.tf files</div>
+        <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md &mdash; Architectural context for review">plan.md</div>
+      </div>
+      <div class="artifacts-row-label">Outputs</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="code-review-{TIMESTAMP}.md &mdash; Quality scores across 6 dimensions, findings with file:line references, improvement roadmap. Located in specs/&lt;branch&gt;/evaluations/.">code-review.md</div>
+      </div>
+      <div class="phase-note">Security (D2) &lt; 5.0 forces "Not Production Ready" override</div>
+    </div>
+
+    <!-- Phase 5: Report -->
+    <div class="phase" data-phase="5">
+      <div class="phase-label">Phase 5</div>
+      <div class="phase-title">Report</div>
+      <div class="node node-agent" data-id="tf-report-generator" data-type="agent" data-desc="tf-report-generator &mdash; Generates comprehensive module readiness report. Assesses quality, security, test coverage, documentation, and publishability.">tf-report-generator</div>
+      <div class="node node-skill" data-id="tf-report-template" data-type="skill" data-desc="tf-report-template &mdash; Report structure, data collection sources, critical sections, validation checklist. Loaded by tf-report-generator.">tf-report-template</div>
+      <div class="node node-template" data-id="report-template" data-type="template" data-desc="deployment-report-template.md &mdash; Report document structure used by tf-report-generator.">deployment-report-template</div>
+      <div class="artifacts-row-label">Reads</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files">*.tf</div>
+        <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="Test results">tests/</div>
+        <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="Examples">examples/</div>
+        <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md">plan.md</div>
+        <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="code-review.md">code-review.md</div>
+      </div>
+      <div class="artifacts-row-label">Outputs</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="readiness-md" data-type="artifact" data-desc="readiness_&lt;timestamp&gt;.md &mdash; Module readiness report with quality score, security score, test coverage, publish recommendation. Located in specs/&lt;branch&gt;/reports/.">readiness_*.md</div>
+      </div>
+      <div class="phase-note">GATE: readiness report must exist at specs/&lt;branch&gt;/reports/</div>
+    </div>
+
+    <!-- Phase 6: Cleanup + PR -->
+    <div class="phase" data-phase="6">
+      <div class="phase-label">Phase 6</div>
+      <div class="phase-title">Cleanup + PR</div>
+      <div class="node node-cmd" data-id="git-push" data-type="cmd" data-desc="git push &mdash; Push branch to remote">git push</div>
+      <div class="node node-cmd" data-id="gh-pr-create" data-type="cmd" data-desc="gh pr create &mdash; Create pull request linking to GitHub issue">gh pr create</div>
+      <div class="node node-script" data-id="post-issue-final" data-type="script" data-desc="post-issue-progress.sh &mdash; Posts completion comment to issue with PR link">post-issue-progress.sh</div>
+      <div class="node node-cmd" data-id="tf-deployer" data-type="cmd" data-desc="tf-deployer &mdash; (Optional) Deploy examples to sandbox workspace for integration testing" style="border-style:dashed">tf-deployer<span style="font-size:7px;opacity:0.7;margin-left:3px">OPTIONAL</span></div>
+      <div class="artifacts-row-label">Outputs</div>
+      <div class="artifacts-row">
+        <div class="node node-artifact" data-id="pr" data-type="artifact" data-desc="Pull Request &mdash; Created via gh pr create, linked to GitHub issue. Contains all module code, tests, examples, and specs/ artifacts.">Pull Request</div>
+        <div class="node node-artifact" data-id="gh-issue-updated" data-type="artifact" data-desc="GitHub Issue &mdash; Updated with completion comment and PR link">GH Issue (updated)</div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:#444;font-style:italic;">"Implementation complete. PR created and artifacts available in specs/&lt;branch&gt;/."</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edge Legend -->
+<div id="edge-legend">
+  <div class="edge-legend-item">
+    <div class="edge-legend-line input-line"></div>
+    <div class="edge-legend-arrow input-arrow"></div>
+    <span style="color:var(--neon-cyan)">Reads (input)</span>
+    <span class="edge-legend-note">artifact &#x2192; agent</span>
+  </div>
+  <div class="edge-legend-item">
+    <div class="edge-legend-line output-line"></div>
+    <div class="edge-legend-arrow output-arrow"></div>
+    <span style="color:var(--neon-orange)">Writes (output)</span>
+    <span class="edge-legend-note">agent &#x2192; artifact</span>
+  </div>
+  <div class="edge-legend-item">
+    <span class="edge-legend-note">Click any agent or artifact to see data flow edges</span>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ============ FLOW TABS ============ -->
+<div id="flow-tabs">
+  <div class="flow-tab active" data-view="pipeline">Pipeline</div>
+  <div class="flow-tab" data-view="swimlane">Swimlane</div>
+  <div class="flow-tab" data-view="dataflow">Data Flow</div>
+</div>
+
+<!-- ============ PIPELINE VIEW ============ -->
+<div id="pipeline" class="flow-view active">
+  <div class="pl-container">
+    <div class="pl-phase" data-phase="1">
+      <div class="pl-num">Phase 1</div>
+      <div class="pl-name">Prerequisites</div>
+      <div class="pl-agents">
+        <div class="node node-script" data-id="validate-env" data-type="script" data-desc="Validates env: TFE_TOKEN, AWS, GH_CLI">validate-env.sh</div>
+        <div class="node node-cmd" data-id="git-branch" data-type="cmd" data-desc="Resolves FEATURE_DIR">git rev-parse</div>
+      </div>
+      <div class="pl-output">
+        <div class="node node-artifact" data-id="spec-md" data-type="artifact" data-desc="spec.md (from /tf-plan)">spec.md</div>
+        <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md (from /tf-plan)">plan.md</div>
+        <div class="node node-artifact" data-id="tasks-md" data-type="artifact" data-desc="tasks.md (from /tf-plan)">tasks.md</div>
+      </div>
+    </div>
+    <div class="pl-arrow"><div class="pl-arrow-line"><div class="pl-arrow-head"></div></div></div>
+    <div class="pl-phase" data-phase="2">
+      <div class="pl-num">Phase 2</div>
+      <div class="pl-name">Implementation</div>
+      <div class="pl-agents">
+        <div class="pl-parallel">PARALLEL</div>
+        <div class="node node-agent" data-id="tf-task-executor" data-type="agent" data-desc="Executes tasks, writes .tf code (parallel)">tf-task-executor (xN)</div>
+      </div>
+      <div class="pl-output">
+        <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="Module .tf files">*.tf files</div>
+        <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="Test files">tests/*.tftest.hcl</div>
+        <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="Example configs">examples/basic/</div>
+      </div>
+    </div>
+    <div class="pl-arrow"><div class="pl-arrow-line"><div class="pl-arrow-head"></div></div></div>
+    <div class="pl-phase" data-phase="3">
+      <div class="pl-num">Phase 3</div>
+      <div class="pl-name">Testing</div>
+      <div class="pl-agents">
+        <div class="node node-cmd" data-id="tf-fmt" data-type="cmd" data-desc="HCL format check">terraform fmt</div>
+        <div class="node node-cmd" data-id="tf-validate" data-type="cmd" data-desc="Config validation">terraform validate</div>
+        <div class="node node-cmd" data-id="tf-test" data-type="cmd" data-desc="Run .tftest.hcl files">terraform test</div>
+        <div class="node node-cmd" data-id="tf-example-plan" data-type="cmd" data-desc="Verify examples plan">example plan</div>
+        <div class="pl-loop">LOOP UNTIL GREEN</div>
+      </div>
+    </div>
+    <div class="pl-arrow"><div class="pl-arrow-line"><div class="pl-arrow-head"></div></div></div>
+    <div class="pl-phase" data-phase="4">
+      <div class="pl-num">Phase 4</div>
+      <div class="pl-name">Quality</div>
+      <div class="pl-agents">
+        <div class="node node-agent" data-id="code-quality-judge" data-type="agent" data-desc="6-dimension quality scoring. Security 30%.">code-quality-judge</div>
+      </div>
+      <div class="pl-output">
+        <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="Quality evaluation report">code-review.md</div>
+      </div>
+    </div>
+    <div class="pl-arrow"><div class="pl-arrow-line"><div class="pl-arrow-head"></div></div></div>
+    <div class="pl-phase" data-phase="5">
+      <div class="pl-num">Phase 5</div>
+      <div class="pl-name">Report</div>
+      <div class="pl-agents">
+        <div class="node node-agent" data-id="tf-report-generator" data-type="agent" data-desc="Readiness assessment">tf-report-generator</div>
+      </div>
+      <div class="pl-output">
+        <div class="node node-artifact" data-id="readiness-md" data-type="artifact" data-desc="Module readiness report">readiness_*.md</div>
+      </div>
+    </div>
+    <div class="pl-arrow"><div class="pl-arrow-line"><div class="pl-arrow-head"></div></div></div>
+    <div class="pl-phase" data-phase="6">
+      <div class="pl-num">Phase 6</div>
+      <div class="pl-name">PR</div>
+      <div class="pl-agents">
+        <div class="node node-cmd" data-id="git-push" data-type="cmd" data-desc="Push to remote">git push</div>
+        <div class="node node-cmd" data-id="gh-pr-create" data-type="cmd" data-desc="Create pull request">gh pr create</div>
+        <div class="node node-script" data-id="post-issue-final" data-type="script" data-desc="Posts completion to issue">post-issue.sh</div>
+      </div>
+      <div class="pl-output">
+        <div class="node node-artifact" data-id="pr" data-type="artifact" data-desc="Pull Request linked to issue">PR</div>
+        <div class="node node-artifact" data-id="gh-issue-updated" data-type="artifact" data-desc="Issue updated with PR link">GH Issue</div>
+      </div>
+      <div class="pl-optional">OPTIONAL: tf-deployer sandbox deploy</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SWIMLANE VIEW ============ -->
+<div id="swimlane" class="flow-view">
+  <div class="sl-grid">
+    <!-- Header row -->
+    <div class="sl-header"></div>
+    <div class="sl-header">P1 Prereq</div>
+    <div class="sl-header">P2 Implement</div>
+    <div class="sl-header">P3 Test</div>
+    <div class="sl-header">P4 Quality</div>
+    <div class="sl-header">P5 Report</div>
+    <div class="sl-header">P6 PR</div>
+
+    <!-- Agents row -->
+    <div class="sl-label" style="color:var(--neon-pink)">Agents</div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-agent" data-id="tf-task-executor" data-type="agent" data-desc="Executes tasks (parallel)">tf-task-executor</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-agent" data-id="code-quality-judge" data-type="agent" data-desc="Quality scoring">code-quality-judge</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-agent" data-id="tf-report-generator" data-type="agent" data-desc="Readiness report">tf-report-gen</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+
+    <!-- Skills row -->
+    <div class="sl-label" style="color:var(--neon-cyan)">Skills</div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-skill" data-id="terraform-style-guide" data-type="skill" data-desc="HCL conventions">tf-style-guide</div>
+      <div class="node node-skill" data-id="tf-implementation-patterns" data-type="skill" data-desc="AWS resource patterns">tf-impl-patterns</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-skill" data-id="terraform-test-skill" data-type="skill" data-desc="Test writing guide">terraform-test</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-skill" data-id="tf-judge-criteria" data-type="skill" data-desc="Scoring rubrics">tf-judge-criteria</div>
+      <div class="node node-skill" data-id="terraform-style-guide-judge" data-type="skill" data-desc="HCL style for review">tf-style-guide</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-skill" data-id="tf-report-template" data-type="skill" data-desc="Report patterns">tf-report-tmpl</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+
+    <!-- MCP row -->
+    <div class="sl-label" style="color:var(--neon-yellow)">MCP</div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-mcp" data-id="mcp-terraform" data-type="mcp" data-desc="Terraform registry">tf-mcp</div>
+      <div class="node node-mcp" data-id="mcp-aws-docs" data-type="mcp" data-desc="AWS docs">aws-mcp</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-mcp" data-id="mcp-terraform-judge" data-type="mcp" data-desc="Provider version checks">tf-mcp</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell sl-empty"></div>
+
+    <!-- Commands row -->
+    <div class="sl-label" style="color:var(--neon-red)">Commands</div>
+    <div class="sl-cell">
+      <div class="node node-cmd" data-id="git-branch" data-type="cmd" data-desc="Resolve branch">git rev-parse</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-cmd" data-id="tf-fmt" data-type="cmd" data-desc="Format check">tf fmt</div>
+      <div class="node node-cmd" data-id="tf-validate" data-type="cmd" data-desc="Validate">tf validate</div>
+      <div class="node node-cmd" data-id="tf-test" data-type="cmd" data-desc="Run tests">tf test</div>
+      <div class="node node-cmd" data-id="tf-example-plan" data-type="cmd" data-desc="Plan examples">example plan</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-cmd" data-id="git-push" data-type="cmd" data-desc="Push branch">git push</div>
+      <div class="node node-cmd" data-id="gh-pr-create" data-type="cmd" data-desc="Create PR">gh pr create</div>
+    </div>
+
+    <!-- Scripts row -->
+    <div class="sl-label" style="color:var(--neon-green)">Scripts</div>
+    <div class="sl-cell">
+      <div class="node node-script" data-id="validate-env" data-type="script" data-desc="Env validation">validate-env</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-script" data-id="post-issue-final" data-type="script" data-desc="Posts completion to GH issue">post-issue.sh</div>
+    </div>
+
+    <!-- Artifacts row -->
+    <div class="sl-label" style="color:var(--neon-orange)">Artifacts</div>
+    <div class="sl-cell">
+      <div class="node node-artifact" data-id="spec-md" data-type="artifact" data-desc="spec.md (input)">spec.md</div>
+      <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md (input)">plan.md</div>
+      <div class="node node-artifact" data-id="tasks-md" data-type="artifact" data-desc="tasks.md (input)">tasks.md</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="Module .tf files">*.tf</div>
+      <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="Test files">tests/*</div>
+      <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="Examples">examples/</div>
+      <div class="node node-artifact" data-id="tasks-md-updated" data-type="artifact" data-desc="tasks.md updated [X]">tasks [X]</div>
+    </div>
+    <div class="sl-cell sl-empty"></div>
+    <div class="sl-cell">
+      <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="Quality evaluation">code-review</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-artifact" data-id="readiness-md" data-type="artifact" data-desc="Readiness report">readiness_*</div>
+    </div>
+    <div class="sl-cell">
+      <div class="node node-artifact" data-id="pr" data-type="artifact" data-desc="Pull Request">PR</div>
+      <div class="node node-artifact" data-id="gh-issue-updated" data-type="artifact" data-desc="GH Issue updated">GH Issue</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DATA FLOW VIEW ============ -->
+<div id="dataflow" class="flow-view">
+  <div class="df-container">
+    <!-- Step 1: Prerequisites -->
+    <div class="df-step" data-phase="1">
+      <div class="df-phase-label">P1</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Run</span>
+          <div class="node node-script" data-id="validate-env" data-type="script" data-desc="Validates environment (GATE checks)">validate-env.sh</div>
+          <span style="font-size:9px;color:var(--neon-red)">GATE: must exit 0</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Resolve</span>
+          <div class="node node-cmd" data-id="git-branch" data-type="cmd" data-desc="Derives FEATURE_DIR from branch">FEATURE_DIR=specs/$(git rev-parse --abbrev-ref HEAD)</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Issue</span>
+          <span style="font-size:10px;color:#555">Get issue number from GitHub (linked to branch or ask user)</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Verify</span>
+          <div class="node node-artifact" data-id="spec-md" data-type="artifact" data-desc="spec.md must exist (from /tf-plan)">spec.md</div>
+          <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md must exist (from /tf-plan)">plan.md</div>
+          <div class="node node-artifact" data-id="tasks-md" data-type="artifact" data-desc="tasks.md must exist (from /tf-plan)">tasks.md</div>
+          <span style="font-size:9px;color:#555">&#x2192; all must exist in FEATURE_DIR</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="df-arrow-down"></div>
+
+    <div class="df-artifact-flow">
+      <div class="df-flow-line"></div>
+      <span class="df-reads-label">tasks.md + plan.md &#x2192; P2 (task execution context)</span>
+      <div class="df-flow-line"></div>
+    </div>
+
+    <!-- Step 2: Implementation -->
+    <div class="df-step" data-phase="2">
+      <div class="df-phase-label">P2</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Agent</span>
+          <div class="node node-agent" data-id="tf-task-executor" data-type="agent" data-desc="Executes tasks from tasks.md in parallel (multiple concurrent instances)">tf-task-executor (xN)</div>
+          <span style="font-size:8px;color:#555;letter-spacing:0.5px">PARALLEL EXECUTION</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Loads</span>
+          <div class="node node-skill" data-id="terraform-style-guide" data-type="skill" data-desc="HCL conventions">terraform-style-guide</div>
+          <div class="node node-skill" data-id="tf-implementation-patterns" data-type="skill" data-desc="AWS resource patterns">tf-implementation-patterns</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Uses</span>
+          <div class="node node-mcp" data-id="mcp-terraform" data-type="mcp" data-desc="Terraform registry MCP">terraform-mcp</div>
+          <div class="node node-mcp" data-id="mcp-aws-docs" data-type="mcp" data-desc="AWS documentation MCP">aws-knowledge-mcp</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Reads</span>
+          <div class="node node-artifact" data-id="tasks-md" data-type="artifact" data-desc="tasks.md &mdash; Task checklist to execute">tasks.md</div>
+          <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md &mdash; Architectural context">plan.md</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Output</span>
+          <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="main.tf, variables.tf, outputs.tf, locals.tf, versions.tf">*.tf files</div>
+          <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="tests/*.tftest.hcl">tests/*.tftest.hcl</div>
+          <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="examples/basic/">examples/basic/</div>
+          <div class="node node-artifact" data-id="tasks-md-updated" data-type="artifact" data-desc="tasks.md with [X] marks">tasks.md [X]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="df-arrow-down"></div>
+
+    <div class="df-artifact-flow">
+      <div class="df-flow-line"></div>
+      <span class="df-reads-label">*.tf + tests/ + examples/ &#x2192; P3 (testing) &#x2192; P4 (quality) &#x2192; P5 (report)</span>
+      <div class="df-flow-line"></div>
+    </div>
+
+    <!-- Step 3: Testing -->
+    <div class="df-step" data-phase="3" style="border-color: rgba(255,68,68,0.15);">
+      <div class="df-phase-label">P3</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Step 1</span>
+          <div class="node node-cmd" data-id="tf-fmt" data-type="cmd" data-desc="terraform fmt -check">terraform fmt -check</div>
+          <div class="node node-cmd" data-id="tf-validate" data-type="cmd" data-desc="terraform validate">terraform validate</div>
+          <span style="font-size:9px;color:#555">on root module</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Step 2</span>
+          <div class="node node-cmd" data-id="tf-test" data-type="cmd" data-desc="terraform test">terraform test</div>
+          <span style="font-size:9px;color:#555">all .tftest.hcl files</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Step 3</span>
+          <div class="node node-cmd" data-id="tf-example-plan" data-type="cmd" data-desc="Verify examples plan">cd examples/basic && terraform init && terraform plan</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Ref</span>
+          <div class="node node-skill" data-id="terraform-test-skill" data-type="skill" data-desc="Test writing reference for fixing failures">terraform-test</div>
+          <span style="font-size:8px;color:var(--neon-ice);opacity:0.6">(for fix iterations)</span>
+        </div>
+
+        <div class="df-loop-indicator">
+          <div class="df-loop-line"></div>
+          <span class="df-loop-label">if tests fail: fix issues &rarr; re-run until all pass</span>
+          <div class="df-loop-line"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="df-arrow-down"></div>
+
+    <!-- Step 4: Quality Review -->
+    <div class="df-step" data-phase="4">
+      <div class="df-phase-label">P4</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Agent</span>
+          <div class="node node-agent" data-id="code-quality-judge" data-type="agent" data-desc="6-dimension quality evaluation with security-first scoring">code-quality-judge</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Loads</span>
+          <div class="node node-skill" data-id="tf-judge-criteria" data-type="skill" data-desc="Scoring rubrics and severity classification">tf-judge-criteria</div>
+          <div class="node node-skill" data-id="terraform-style-guide-judge" data-type="skill" data-desc="HCL style validation">terraform-style-guide</div>
+          <div class="node node-mcp" data-id="mcp-terraform-judge" data-type="mcp" data-desc="Provider version validation">terraform-mcp</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Reads</span>
+          <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files">*.tf files</div>
+          <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md (architectural context)">plan.md</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Output</span>
+          <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="code-review-{TIMESTAMP}.md &mdash; 6 dimension scores + findings">code-review-{TS}.md</div>
+        </div>
+        <div class="df-row" style="margin-top:2px">
+          <span class="df-label"></span>
+          <span style="font-size:8px;color:var(--neon-pink)">D2 Security &lt; 5.0 &#x2192; "Not Production Ready" override</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="df-arrow-down"></div>
+
+    <div class="df-artifact-flow">
+      <div class="df-flow-line"></div>
+      <span class="df-reads-label">code-review.md + *.tf + tests/ + examples/ + plan.md &#x2192; P5 (report generation)</span>
+      <div class="df-flow-line"></div>
+    </div>
+
+    <!-- Step 5: Report -->
+    <div class="df-step" data-phase="5">
+      <div class="df-phase-label">P5</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Agent</span>
+          <div class="node node-agent" data-id="tf-report-generator" data-type="agent" data-desc="Generates readiness report with quality, security, test coverage, publish recommendation">tf-report-generator</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Loads</span>
+          <div class="node node-skill" data-id="tf-report-template" data-type="skill" data-desc="Report structure and collection patterns">tf-report-template</div>
+          <div class="node node-template" data-id="report-template" data-type="template" data-desc="deployment-report-template.md">deployment-report-tmpl</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Reads</span>
+          <div class="node node-artifact" data-id="tf-code" data-type="artifact" data-desc="*.tf files">*.tf</div>
+          <div class="node node-artifact" data-id="tf-tests" data-type="artifact" data-desc="Test results">tests/</div>
+          <div class="node node-artifact" data-id="tf-examples" data-type="artifact" data-desc="Examples">examples/</div>
+          <div class="node node-artifact" data-id="plan-md" data-type="artifact" data-desc="plan.md">plan.md</div>
+          <div class="node node-artifact" data-id="code-review-md" data-type="artifact" data-desc="code-review.md">code-review.md</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Output</span>
+          <div class="node node-artifact" data-id="readiness-md" data-type="artifact" data-desc="readiness_*.md in specs/&lt;branch&gt;/reports/">readiness_*.md</div>
+          <span style="font-size:9px;color:var(--neon-red)">GATE: report must exist</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="df-arrow-down"></div>
+
+    <!-- Step 6: Cleanup + PR -->
+    <div class="df-step" data-phase="6">
+      <div class="df-phase-label">P6</div>
+      <div class="df-content">
+        <div class="df-row">
+          <span class="df-label">Push</span>
+          <div class="node node-cmd" data-id="git-push" data-type="cmd" data-desc="git push to remote">git push</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">PR</span>
+          <div class="node node-cmd" data-id="gh-pr-create" data-type="cmd" data-desc="Creates PR linked to issue">gh pr create</div>
+          <span style="font-size:10px;color:#555">&#x2192; links to GitHub issue</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Notify</span>
+          <div class="node node-script" data-id="post-issue-final" data-type="script" data-desc="Posts completion comment with PR link">post-issue-progress.sh</div>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Optional</span>
+          <div class="node node-cmd" data-id="tf-deployer" data-type="cmd" data-desc="Deploy examples to sandbox workspace" style="border-style:dashed">tf-deployer</div>
+          <span style="font-size:9px;color:var(--neon-purple);opacity:0.7">sandbox integration testing</span>
+        </div>
+        <div class="df-row">
+          <span class="df-label">Output</span>
+          <div class="node node-artifact" data-id="pr" data-type="artifact" data-desc="Pull Request with all module artifacts">Pull Request</div>
+          <div class="node node-artifact" data-id="gh-issue-updated" data-type="artifact" data-desc="GitHub Issue with completion comment">GH Issue (updated)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DETAIL BAR ============ -->
+<div id="detail" class="empty">
+  <span id="detail-type"></span>
+  <span id="detail-name"></span>
+  <span id="detail-desc">Click any node to see its connections</span>
+  <span id="detail-hint">ESC to clear</span>
+</div>
+
+<script>
+const typeColors = {
+  agent: '#ff2d7b', skill: '#00f0ff', template: '#b44dff',
+  script: '#39ff8e', artifact: '#ff9d2e', mcp: '#ffe14d', ref: '#a8c8ff', cmd: '#ff4444'
+};
+const typeLabels = {
+  agent: 'AGENT', skill: 'SKILL', template: 'TMPL',
+  script: 'SCRIPT', artifact: 'OUTPUT', mcp: 'MCP', ref: 'CONSTITUTION', cmd: 'COMMAND'
+};
+
+// ---- Agent I/O map ----
+const agentIO = {
+  'tf-task-executor': {
+    reads: ['tasks-md', 'plan-md'],
+    writes: ['tf-code', 'tf-tests', 'tf-examples', 'tasks-md-updated']
+  },
+  'code-quality-judge': {
+    reads: ['tf-code', 'plan-md'],
+    writes: ['code-review-md']
+  },
+  'tf-report-generator': {
+    reads: ['tf-code', 'tf-tests', 'tf-examples', 'plan-md', 'code-review-md'],
+    writes: ['readiness-md']
+  }
+};
+
+// Reverse index
+const artifactIO = {};
+for (const [agentId, io] of Object.entries(agentIO)) {
+  for (const artId of io.reads) {
+    if (!artifactIO[artId]) artifactIO[artId] = { producedBy: [], consumedBy: [] };
+    artifactIO[artId].consumedBy.push(agentId);
+  }
+  for (const artId of io.writes) {
+    if (!artifactIO[artId]) artifactIO[artId] = { producedBy: [], consumedBy: [] };
+    artifactIO[artId].producedBy.push(agentId);
+  }
+}
+
+// Full connections map
+const connections = {
+  // Agents
+  'tf-task-executor': ['terraform-style-guide', 'tf-implementation-patterns', 'mcp-terraform', 'mcp-aws-docs', 'tasks-md', 'plan-md', 'tf-code', 'tf-tests', 'tf-examples', 'tasks-md-updated'],
+  'code-quality-judge': ['tf-judge-criteria', 'terraform-style-guide-judge', 'mcp-terraform-judge', 'tf-code', 'plan-md', 'code-review-md'],
+  'tf-report-generator': ['tf-report-template', 'report-template', 'tf-code', 'tf-tests', 'tf-examples', 'plan-md', 'code-review-md', 'readiness-md'],
+
+  // Skills
+  'terraform-style-guide': ['tf-task-executor'],
+  'tf-implementation-patterns': ['tf-task-executor'],
+  'terraform-test-skill': ['tf-test'],
+  'tf-judge-criteria': ['code-quality-judge'],
+  'terraform-style-guide-judge': ['code-quality-judge'],
+  'tf-report-template': ['tf-report-generator'],
+
+  // Templates
+  'report-template': ['tf-report-generator'],
+
+  // MCP
+  'mcp-terraform': ['tf-task-executor'],
+  'mcp-aws-docs': ['tf-task-executor'],
+  'mcp-terraform-judge': ['code-quality-judge'],
+
+  // Scripts
+  'validate-env': [],
+  'post-issue': ['post-issue-final'],
+  'post-issue-final': ['gh-issue-updated'],
+
+  // Commands
+  'git-branch': [],
+  'tf-fmt': ['tf-code'],
+  'tf-validate': ['tf-code'],
+  'tf-test': ['tf-code', 'tf-tests', 'terraform-test-skill'],
+  'tf-example-plan': ['tf-examples'],
+  'git-push': ['pr'],
+  'gh-pr-create': ['pr', 'gh-issue-updated'],
+  'tf-deployer': [],
+
+  // Artifacts - input from /tf-plan
+  'spec-md': [],
+  'plan-md': ['tf-task-executor', 'code-quality-judge', 'tf-report-generator'],
+  'tasks-md': ['tf-task-executor'],
+
+  // Artifacts - produced by tf-implement
+  'tf-code': ['tf-task-executor', 'tf-fmt', 'tf-validate', 'tf-test', 'code-quality-judge', 'tf-report-generator'],
+  'tf-tests': ['tf-task-executor', 'tf-test', 'tf-report-generator'],
+  'tf-examples': ['tf-task-executor', 'tf-example-plan', 'tf-report-generator'],
+  'tasks-md-updated': ['tf-task-executor'],
+  'code-review-md': ['code-quality-judge', 'tf-report-generator'],
+  'readiness-md': ['tf-report-generator'],
+  'pr': ['gh-pr-create', 'git-push'],
+  'gh-issue-updated': ['post-issue-final', 'gh-pr-create']
+};
+
+const svg = document.getElementById('edges');
+const detailName = document.getElementById('detail-name');
+const detailType = document.getElementById('detail-type');
+const detailDesc = document.getElementById('detail-desc');
+const detailEl = document.getElementById('detail');
+let selectedId = null;
+
+// ---- Tab switching ----
+document.querySelectorAll('.flow-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.flow-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.flow-view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.view).classList.add('active');
+    if (selectedId) drawEdges();
+  });
+});
+
+// ---- Edge drawing helpers ----
+function getNodeCenter(el) {
+  const r = el.getBoundingClientRect();
+  const section = document.getElementById('grid-section');
+  const sr = section.getBoundingClientRect();
+  return {
+    x: r.left - sr.left + r.width / 2,
+    y: r.top - sr.top + r.height / 2
+  };
+}
+
+function makeSvgDefs() {
+  return `<defs>
+    <marker id="arrow-input" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#00f0ff" fill-opacity="0.7"/>
+    </marker>
+    <marker id="arrow-output" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#ff9d2e" fill-opacity="0.7"/>
+    </marker>
+  </defs>`;
+}
+
+function drawCurvedEdge(from, to, index, type) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return;
+  const curve = Math.min(dist * 0.12, 35) * (index % 2 === 0 ? 1 : -1);
+  const mx = (from.x + to.x) / 2 + (-dy / dist * curve);
+  const my = (from.y + to.y) / 2 + (dx / dist * curve);
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', `M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke-width', type === 'output' ? '2' : '1.5');
+
+  if (type === 'input') {
+    path.setAttribute('stroke', '#00f0ff');
+    path.setAttribute('stroke-opacity', '0.5');
+    path.setAttribute('stroke-dasharray', '5 4');
+    path.setAttribute('marker-end', 'url(#arrow-input)');
+    path.style.animation = 'dash-flow 1.5s linear infinite';
+  } else {
+    path.setAttribute('stroke', '#ff9d2e');
+    path.setAttribute('stroke-opacity', '0.6');
+    path.setAttribute('stroke-dasharray', '8 2');
+    path.setAttribute('marker-end', 'url(#arrow-output)');
+    path.style.animation = 'dash-flow 1s linear infinite';
+  }
+  svg.appendChild(path);
+}
+
+function drawEdges() {
+  svg.innerHTML = makeSvgDefs();
+  if (!selectedId) return;
+
+  const gridSection = document.getElementById('grid-section');
+  const selectedType = document.querySelector(`[data-id="${selectedId}"]`)?.dataset.type;
+
+  if (selectedType === 'agent' && agentIO[selectedId]) {
+    const io = agentIO[selectedId];
+    const agentEl = gridSection.querySelector(`[data-id="${selectedId}"]`);
+    if (!agentEl) return;
+    const agentPos = getNodeCenter(agentEl);
+
+    io.reads.forEach((artId, i) => {
+      const artEl = gridSection.querySelector(`[data-id="${artId}"]`);
+      if (!artEl) return;
+      drawCurvedEdge(getNodeCenter(artEl), agentPos, i, 'input');
+    });
+
+    io.writes.forEach((artId, i) => {
+      const artEl = gridSection.querySelector(`[data-id="${artId}"]`);
+      if (!artEl) return;
+      drawCurvedEdge(agentPos, getNodeCenter(artEl), i + io.reads.length, 'output');
+    });
+
+  } else if (selectedType === 'artifact' && artifactIO[selectedId]) {
+    const aio = artifactIO[selectedId];
+    const artEl = gridSection.querySelector(`[data-id="${selectedId}"]`);
+    if (!artEl) return;
+    const artPos = getNodeCenter(artEl);
+
+    aio.producedBy.forEach((agentId, i) => {
+      const agentEl = gridSection.querySelector(`[data-id="${agentId}"]`);
+      if (!agentEl) return;
+      drawCurvedEdge(getNodeCenter(agentEl), artPos, i, 'output');
+    });
+
+    aio.consumedBy.forEach((agentId, i) => {
+      const agentEl = gridSection.querySelector(`[data-id="${agentId}"]`);
+      if (!agentEl) return;
+      drawCurvedEdge(artPos, getNodeCenter(agentEl), i + aio.producedBy.length, 'input');
+    });
+  }
+}
+
+// ---- Selection ----
+function selectNode(id) {
+  selectedId = id;
+  const related = connections[id] || [];
+  const activeSet = new Set([id, ...related]);
+  document.body.classList.add('has-selection');
+
+  document.querySelectorAll('.node').forEach(n => {
+    if (activeSet.has(n.dataset.id)) {
+      n.classList.add('active');
+      n.classList.remove('dimmed');
+    } else {
+      n.classList.remove('active');
+      n.classList.add('dimmed');
+    }
+  });
+
+  document.querySelectorAll('#grid .phase').forEach(p => {
+    const hasActive = Array.from(p.querySelectorAll('.node')).some(n => activeSet.has(n.dataset.id));
+    p.classList.toggle('phase-active', hasActive);
+    p.classList.toggle('dimmed', !hasActive);
+  });
+
+  document.querySelectorAll('.pl-phase').forEach(p => {
+    const hasActive = Array.from(p.querySelectorAll('.node')).some(n => activeSet.has(n.dataset.id));
+    p.classList.toggle('phase-active', hasActive);
+    p.classList.toggle('dimmed', !hasActive);
+  });
+
+  document.querySelectorAll('.sl-cell').forEach(c => {
+    const hasActive = Array.from(c.querySelectorAll('.node')).some(n => activeSet.has(n.dataset.id));
+    c.classList.toggle('dimmed', !hasActive && c.querySelectorAll('.node').length > 0);
+  });
+
+  document.querySelectorAll('.df-step').forEach(s => {
+    const hasActive = Array.from(s.querySelectorAll('.node')).some(n => activeSet.has(n.dataset.id));
+    s.classList.toggle('phase-active', hasActive);
+    s.classList.toggle('dimmed', !hasActive);
+  });
+
+  // Update detail bar
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) {
+    const type = el.dataset.type;
+    const color = typeColors[type];
+    detailName.textContent = id;
+    detailName.style.color = color;
+    detailType.textContent = typeLabels[type];
+    detailType.style.color = color;
+    detailType.style.borderColor = color;
+
+    let desc = el.dataset.desc || '';
+    if (type === 'agent' && agentIO[id]) {
+      const io = agentIO[id];
+      const reads = io.reads.length ? io.reads.join(', ') : '(none)';
+      const writes = io.writes.join(', ');
+      desc += ` | READS: ${reads} | WRITES: ${writes}`;
+    } else if (type === 'artifact' && artifactIO[id]) {
+      const aio = artifactIO[id];
+      const prod = aio.producedBy.length ? aio.producedBy.join(', ') : '(none)';
+      const cons = aio.consumedBy.length ? aio.consumedBy.join(', ') : '(none)';
+      desc += ` | PRODUCED BY: ${prod} | CONSUMED BY: ${cons}`;
+    }
+    detailDesc.textContent = desc;
+    detailEl.classList.remove('empty');
+  }
+
+  drawEdges();
+}
+
+function clearSelection() {
+  selectedId = null;
+  document.body.classList.remove('has-selection');
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('active', 'dimmed'));
+  document.querySelectorAll('.phase, .pl-phase, .df-step').forEach(p => p.classList.remove('phase-active', 'dimmed'));
+  document.querySelectorAll('.sl-cell').forEach(c => c.classList.remove('dimmed'));
+  svg.innerHTML = '';
+  detailName.textContent = '';
+  detailType.textContent = '';
+  detailDesc.textContent = 'Click any agent or artifact to see data flow edges';
+  detailEl.classList.add('empty');
+}
+
+// ---- Event listeners ----
+document.addEventListener('click', (e) => {
+  const node = e.target.closest('.node');
+  if (node) {
+    e.stopPropagation();
+    const id = node.dataset.id;
+    if (selectedId === id) clearSelection();
+    else selectNode(id);
+  } else {
+    clearSelection();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') clearSelection();
+});
+
+window.addEventListener('resize', () => { if (selectedId) drawEdges(); });
+window.addEventListener('scroll', () => { if (selectedId) drawEdges(); });
+</script>
+</body>
+</html>

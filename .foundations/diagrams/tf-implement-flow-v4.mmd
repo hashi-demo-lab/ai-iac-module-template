@@ -1,0 +1,126 @@
+flowchart TB
+    %% ══════════════════════════════════════════════════════════════
+    %% tf-implement-flow.mmd — /tf-implement Workflow
+    %%
+    %% Color coding:
+    %%   Green   = Skills
+    %%   Blue    = Agents (workers invoked via Task tool)
+    %%   Purple  = Bash scripts
+    %%   Red     = Human gates
+    %% ══════════════════════════════════════════════════════════════
+
+    %% ══════════════════════════════════════════════════════════════
+    %% LEGEND
+    %% ══════════════════════════════════════════════════════════════
+    subgraph Legend[" Legend "]
+        direction LR
+        LS0(["Skill"])
+        LA0["Agent"]
+        LB0[["Script"]]
+        LG0{{"Human Gate"}}
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% ENTRY POINT
+    %% ══════════════════════════════════════════════════════════════
+    TFI(["/tf-implement"])
+    TFI --> I1
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 1 — PREREQUISITES
+    %% ══════════════════════════════════════════════════════════════
+    subgraph I1["Phase 1 — Prerequisites"]
+        direction LR
+        I1a[["validate-env.sh"]]
+        I1b[["check-prerequisites.sh"]]
+        I1a --> I1b
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 2 — TASK EXECUTION
+    %% ══════════════════════════════════════════════════════════════
+    subgraph I2g["Phase 2 — Task Execution"]
+        direction LR
+        K8c(["terraform-style-guide"]) --> I2["tf-task-executor\n×N parallel"]
+        K9(["tf-implementation-patterns"]) --> I2
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 3 — DESIGN REVIEW
+    %% ══════════════════════════════════════════════════════════════
+    subgraph I3["Phase 3 — Design Review"]
+        direction LR
+        K10(["tf-security-baselines"]) --> I3a["aws-security-\nadvisor"]
+        K11(["tf-judge-criteria"]) --> I3b["code-quality-\njudge"]
+        K8d(["terraform-style-guide"]) --> I3b
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 4 — DEPLOY
+    %% ══════════════════════════════════════════════════════════════
+    subgraph I4g["Phase 4 — Deploy"]
+        I4["tf-deployer"]
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 5 — REPORT
+    %% ══════════════════════════════════════════════════════════════
+    subgraph I5g["Phase 5 — Report"]
+        direction LR
+        K12(["tf-report-template"]) --> I5["tf-report-generator"]
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 6 — PUSH + PR
+    %% ══════════════════════════════════════════════════════════════
+    I6["Phase 6 — Push + PR"]
+
+    %% ══════════════════════════════════════════════════════════════
+    %% FLOW
+    %% ══════════════════════════════════════════════════════════════
+    I1 --> I2g --> I3 --> I4g --> I5g --> I6
+
+    %% ══════════════════════════════════════════════════════════════
+    %% COMPOUND LEARNING
+    %% ══════════════════════════════════════════════════════════════
+    I6 --> CL
+
+    subgraph CL["Compound Learning"]
+        direction LR
+        K13(["tf-compound-patterns"]) --> CL1["pattern-\nextractor"]
+        K13 --> CL2["pitfall-\nrecorder"]
+        K13 --> CL3["agents-\nupdater"]
+        K13 --> CL4["constitution-\nreviewer"]
+        K13 --> CL5["template-\nimprover"]
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% SCRIPTS (referenced by agents)
+    %% ══════════════════════════════════════════════════════════════
+    SCR3[["checkpoint-commit.sh"]]
+    CL --> SCR3
+    SCR4[["post-issue-progress.sh"]]
+    I6 --> SCR4
+
+    %% ══════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ══════════════════════════════════════════════════════════════
+    classDef skill fill:#d5f5e3,stroke:#27ae60,color:#000,stroke-width:2px
+    classDef agent fill:#d4e6f1,stroke:#2980b9,color:#000
+    classDef script fill:#e8daef,stroke:#8e44ad,color:#000
+    classDef gate fill:#fadbd8,stroke:#e74c3c,color:#000,stroke-width:2px
+
+    %% Skills
+    class TFI,LS0 skill
+    class K8c,K8d,K9,K10,K11,K12,K13 skill
+    class I6 skill
+
+    %% Agents
+    class I2,I3a,I3b,I4,I5,LA0 agent
+    class CL1,CL2,CL3,CL4,CL5 agent
+
+    %% Scripts
+    class I1a,I1b,SCR3,SCR4,LB0 script
+
+    %% Gates
+    class LG0 gate

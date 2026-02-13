@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-IaC Architecture Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 300px; min-width: 300px; background: #161b22; border-right: 1px solid #30363d; display: flex; flex-direction: column; overflow-y: auto; }
+  .sidebar h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e; padding: 16px 16px 8px; }
+  .sidebar-section { padding: 0 16px 16px; border-bottom: 1px solid #21262d; }
+  .sidebar-section:last-child { border-bottom: none; }
+
+  /* Presets */
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .preset-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: center; transition: all 0.15s; }
+  .preset-btn:hover { background: #30363d; border-color: #58a6ff; }
+  .preset-btn.active { background: #1f6feb; border-color: #58a6ff; color: #fff; }
+
+  /* Layer toggles */
+  .layer-toggle { display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer; font-size: 13px; }
+  .layer-toggle input { display: none; }
+  .layer-swatch { width: 14px; height: 14px; border-radius: 3px; border: 2px solid transparent; transition: all 0.15s; }
+  .layer-toggle input:checked + .layer-swatch { border-color: #fff; }
+  .layer-toggle input:not(:checked) + .layer-swatch { opacity: 0.35; }
+  .layer-toggle input:not(:checked) ~ span { opacity: 0.45; }
+
+  /* Connection toggles */
+  .conn-toggle { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; font-size: 13px; }
+  .conn-toggle input { display: none; }
+  .conn-line { width: 20px; height: 2px; border-radius: 1px; }
+  .conn-toggle input:not(:checked) + .conn-line { opacity: 0.25; }
+  .conn-toggle input:not(:checked) ~ span { opacity: 0.45; }
+
+  /* Comments */
+  .comments-list { max-height: 220px; overflow-y: auto; }
+  .comment-item { background: #21262d; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; position: relative; }
+  .comment-item .target { color: #58a6ff; font-weight: 600; }
+  .comment-item .text { color: #8b949e; margin-top: 3px; }
+  .comment-item .del { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #f85149; cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.6; }
+  .comment-item .del:hover { opacity: 1; }
+  .no-comments { color: #484f58; font-size: 12px; font-style: italic; }
+
+  /* Main area */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Canvas */
+  .canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #0d1117; }
+  .canvas-wrap svg { width: 100%; height: 100%; }
+
+  /* Zoom controls */
+  .zoom-controls { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; }
+  .zoom-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .zoom-btn:hover { background: #30363d; }
+
+  /* Legend */
+  .legend { position: absolute; bottom: 12px; left: 12px; background: #161b22ee; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; font-size: 11px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+  .legend-line { width: 18px; height: 0; border-top-width: 2px; border-top-style: solid; }
+
+  /* Prompt area */
+  .prompt-area { background: #161b22; border-top: 1px solid #30363d; padding: 12px 16px; max-height: 200px; overflow-y: auto; }
+  .prompt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .prompt-header span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e; }
+  .copy-btn { background: #238636; border: none; color: #fff; padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .copy-btn:hover { background: #2ea043; }
+  .copy-btn.copied { background: #1f6feb; }
+  .prompt-text { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 12px; color: #c9d1d9; line-height: 1.5; white-space: pre-wrap; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: #000000aa; z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; width: 400px; max-width: 90vw; }
+  .modal h3 { font-size: 15px; margin-bottom: 4px; }
+  .modal .subtitle { font-size: 12px; color: #8b949e; font-family: monospace; margin-bottom: 12px; }
+  .modal textarea { width: 100%; height: 80px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; padding: 10px; font-family: inherit; font-size: 13px; resize: vertical; }
+  .modal textarea:focus { outline: none; border-color: #58a6ff; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .modal-actions button { padding: 6px 16px; border-radius: 6px; border: 1px solid #30363d; cursor: pointer; font-size: 13px; }
+  .btn-cancel { background: #21262d; color: #c9d1d9; }
+  .btn-save { background: #238636; border-color: #238636; color: #fff; }
+  .btn-save:hover { background: #2ea043; }
+
+  /* Title bar */
+  .title-bar { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+  .title-bar h1 { font-size: 15px; font-weight: 600; }
+  .title-bar .badge { background: #1f6feb33; color: #58a6ff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="title-bar" style="border-right:none;">
+    <h1>AI-IaC Architecture</h1>
+    <span class="badge">SDD Pipeline</span>
+  </div>
+
+  <h2>Views</h2>
+  <div class="sidebar-section">
+    <div class="preset-grid" id="presets"></div>
+  </div>
+
+  <h2>Layers</h2>
+  <div class="sidebar-section" id="layer-toggles"></div>
+
+  <h2>Connections</h2>
+  <div class="sidebar-section" id="conn-toggles"></div>
+
+  <h2>Comments <span id="comment-count" style="color:#58a6ff"></span></h2>
+  <div class="sidebar-section">
+    <div class="comments-list" id="comments-list">
+      <div class="no-comments">Click a component to add feedback</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoom(0.15)">+</button>
+      <button class="zoom-btn" onclick="zoom(-0.15)">&minus;</button>
+      <button class="zoom-btn" onclick="resetZoom()" style="font-size:12px">Fit</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="prompt-area">
+    <div class="prompt-header">
+      <span>Prompt Output</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+    </div>
+    <div class="prompt-text" id="prompt-text"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div class="subtitle" id="modal-subtitle"></div>
+    <textarea id="modal-input" placeholder="Add your feedback or architectural comment..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveComment()">Save Comment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA MODEL ─────────────────────────────────────────────────
+
+const LAYERS = {
+  'entry':      { label: 'Entry Points',       color: '#f97316', fill: '#431407' },
+  'orchestrator': { label: 'Orchestrators',     color: '#eab308', fill: '#422006' },
+  'sdd-agent':  { label: 'SDD Agents',         color: '#3b82f6', fill: '#172554' },
+  'impl-agent': { label: 'Implementation',      color: '#10b981', fill: '#052e16' },
+  'review':     { label: 'Review & Quality',    color: '#a855f7', fill: '#3b0764' },
+  'compound':   { label: 'Compound Learning',   color: '#ec4899', fill: '#500724' },
+  'infra':      { label: 'Infrastructure',      color: '#06b6d4', fill: '#083344' },
+  'artifacts':  { label: 'Artifacts & Memory',  color: '#6b7280', fill: '#1f2937' },
+};
+
+const CONN_TYPES = {
+  'orchestrates': { label: 'Orchestrates',    color: '#eab308', dash: '' },
+  'data-flow':    { label: 'Data Flow',       color: '#3b82f6', dash: '' },
+  'produces':     { label: 'Produces',        color: '#10b981', dash: '6,3' },
+  'reviews':      { label: 'Reviews',         color: '#a855f7', dash: '4,4' },
+  'captures':     { label: 'Captures',        color: '#ec4899', dash: '8,4' },
+  'deploys-to':   { label: 'Deploys To',      color: '#06b6d4', dash: '3,3' },
+};
+
+const nodes = [
+  // Entry points
+  { id: 'tf-plan',         label: '/tf-plan',            subtitle: 'Planning Orchestrator',         x: 120, y: 40,  w: 150, h: 44, layer: 'entry' },
+  { id: 'tf-implement',    label: '/tf-implement',       subtitle: 'Implementation Orchestrator',   x: 520, y: 40,  w: 170, h: 44, layer: 'entry' },
+  { id: 'tf-e2e',          label: '/tf-e2e-tester',      subtitle: 'E2E Test Harness',              x: 320, y: 40,  w: 160, h: 44, layer: 'entry' },
+
+  // SDD Agents
+  { id: 'specify',         label: 'sdd-specify',         subtitle: 'Draft specifications',          x: 30,  y: 150, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'research',        label: 'sdd-research',        subtitle: 'Module & AWS research',         x: 190, y: 150, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'clarify',         label: 'sdd-clarify',         subtitle: 'Resolve ambiguities',           x: 30,  y: 215, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'plan-draft',      label: 'sdd-plan-draft',      subtitle: 'Create implementation plan',    x: 190, y: 215, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'checklist',       label: 'sdd-checklist',       subtitle: 'Quality checklists',            x: 30,  y: 280, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'tasks',           label: 'sdd-tasks',           subtitle: 'Task breakdown',                x: 190, y: 280, w: 140, h: 44, layer: 'sdd-agent' },
+  { id: 'analyze',         label: 'sdd-analyze',         subtitle: 'Cross-artifact consistency',    x: 110, y: 345, w: 140, h: 44, layer: 'sdd-agent' },
+
+  // Implementation Agents
+  { id: 'task-executor',   label: 'tf-task-executor',    subtitle: 'Execute tasks (parallel)',      x: 460, y: 150, w: 160, h: 44, layer: 'impl-agent' },
+  { id: 'deployer',        label: 'tf-deployer',         subtitle: 'Deploy to HCP Terraform',       x: 460, y: 215, w: 160, h: 44, layer: 'impl-agent' },
+  { id: 'report-gen',      label: 'tf-report-generator', subtitle: 'Deployment reports',            x: 460, y: 280, w: 170, h: 44, layer: 'impl-agent' },
+
+  // Review
+  { id: 'security',        label: 'aws-security-advisor',subtitle: 'Security & compliance',         x: 680, y: 150, w: 180, h: 44, layer: 'review' },
+  { id: 'quality',         label: 'code-quality-judge',  subtitle: 'Code quality scoring',          x: 680, y: 215, w: 170, h: 44, layer: 'review' },
+
+  // Compound Learning
+  { id: 'pattern-ext',     label: 'pattern-extractor',   subtitle: 'Extract reusable patterns',     x: 680, y: 320, w: 170, h: 44, layer: 'compound' },
+  { id: 'pitfall-rec',     label: 'pitfall-recorder',    subtitle: 'Document lessons learned',      x: 680, y: 385, w: 170, h: 44, layer: 'compound' },
+  { id: 'const-review',    label: 'constitution-reviewer',subtitle: 'Governance gaps',              x: 480, y: 385, w: 180, h: 44, layer: 'compound' },
+  { id: 'agents-updater',  label: 'agents-updater',      subtitle: 'Propose agent improvements',    x: 480, y: 320, w: 170, h: 44, layer: 'compound' },
+
+  // Infrastructure
+  { id: 'hcp-tf',          label: 'HCP Terraform',       subtitle: 'Remote state & workspaces',     x: 460, y: 455, w: 160, h: 44, layer: 'infra' },
+  { id: 'tf-mcp',          label: 'Terraform MCP',       subtitle: 'Registry & workspace API',      x: 250, y: 455, w: 160, h: 44, layer: 'infra' },
+  { id: 'aws-mcp',         label: 'AWS Knowledge MCP',   subtitle: 'AWS docs & availability',       x: 50,  y: 455, w: 170, h: 44, layer: 'infra' },
+  { id: 'private-reg',     label: 'Private Registry',    subtitle: 'app.terraform.io/<org>/',       x: 680, y: 455, w: 160, h: 44, layer: 'infra' },
+
+  // Artifacts
+  { id: 'spec',            label: 'spec.md',             subtitle: 'specs/<feature>/',               x: 30,  y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'plan',            label: 'plan.md',             subtitle: 'specs/<feature>/',               x: 165, y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'tasks-md',        label: 'tasks.md',            subtitle: 'specs/<feature>/',               x: 300, y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'tf-files',        label: '*.tf files',          subtitle: 'Root directory',                 x: 435, y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'reports',         label: 'reports/',             subtitle: 'specs/<feature>/reports/',       x: 570, y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'memory',          label: 'memory/',              subtitle: '.foundations/memory/',           x: 705, y: 530, w: 120, h: 40, layer: 'artifacts' },
+  { id: 'constitution',    label: 'constitution.md',      subtitle: '.foundations/memory/',           x: 840, y: 530, w: 140, h: 40, layer: 'artifacts' },
+];
+
+const connections = [
+  // tf-plan orchestration
+  { from: 'tf-plan',     to: 'specify',       type: 'orchestrates', label: '1' },
+  { from: 'tf-plan',     to: 'research',      type: 'orchestrates', label: '2' },
+  { from: 'tf-plan',     to: 'clarify',       type: 'orchestrates', label: '3' },
+  { from: 'tf-plan',     to: 'plan-draft',    type: 'orchestrates', label: '4' },
+  { from: 'tf-plan',     to: 'checklist',     type: 'orchestrates', label: '5' },
+  { from: 'tf-plan',     to: 'tasks',         type: 'orchestrates', label: '6' },
+  { from: 'tf-plan',     to: 'analyze',       type: 'orchestrates', label: '7' },
+
+  // tf-implement orchestration
+  { from: 'tf-implement', to: 'task-executor', type: 'orchestrates' },
+  { from: 'tf-implement', to: 'deployer',      type: 'orchestrates' },
+  { from: 'tf-implement', to: 'report-gen',    type: 'orchestrates' },
+  { from: 'tf-implement', to: 'security',      type: 'orchestrates' },
+  { from: 'tf-implement', to: 'quality',       type: 'orchestrates' },
+  { from: 'tf-implement', to: 'pattern-ext',   type: 'orchestrates' },
+  { from: 'tf-implement', to: 'pitfall-rec',   type: 'orchestrates' },
+  { from: 'tf-implement', to: 'const-review',  type: 'orchestrates' },
+  { from: 'tf-implement', to: 'agents-updater',type: 'orchestrates' },
+
+  // e2e chains both
+  { from: 'tf-e2e',      to: 'tf-plan',       type: 'orchestrates' },
+  { from: 'tf-e2e',      to: 'tf-implement',  type: 'orchestrates' },
+
+  // SDD data flow
+  { from: 'specify',     to: 'spec',          type: 'produces' },
+  { from: 'research',    to: 'plan',          type: 'data-flow' },
+  { from: 'clarify',     to: 'spec',          type: 'data-flow' },
+  { from: 'plan-draft',  to: 'plan',          type: 'produces' },
+  { from: 'tasks',       to: 'tasks-md',      type: 'produces' },
+  { from: 'analyze',     to: 'spec',          type: 'data-flow' },
+  { from: 'analyze',     to: 'plan',          type: 'data-flow' },
+  { from: 'analyze',     to: 'tasks-md',      type: 'data-flow' },
+
+  // Implementation data flow
+  { from: 'task-executor', to: 'tf-files',    type: 'produces' },
+  { from: 'deployer',     to: 'hcp-tf',       type: 'deploys-to' },
+  { from: 'report-gen',   to: 'reports',      type: 'produces' },
+
+  // Review flows
+  { from: 'security',    to: 'tf-files',      type: 'reviews' },
+  { from: 'quality',     to: 'tf-files',      type: 'reviews' },
+
+  // Compound learning
+  { from: 'pattern-ext',  to: 'memory',       type: 'captures' },
+  { from: 'pitfall-rec',  to: 'memory',       type: 'captures' },
+  { from: 'const-review', to: 'constitution', type: 'captures' },
+  { from: 'agents-updater', to: 'memory',     type: 'captures' },
+
+  // MCP tool usage
+  { from: 'research',    to: 'tf-mcp',        type: 'data-flow' },
+  { from: 'research',    to: 'aws-mcp',       type: 'data-flow' },
+  { from: 'task-executor', to: 'tf-mcp',      type: 'data-flow' },
+  { from: 'deployer',    to: 'hcp-tf',        type: 'data-flow' },
+  { from: 'task-executor', to: 'private-reg',  type: 'data-flow' },
+
+  // Constitution governance
+  { from: 'plan-draft',  to: 'constitution',  type: 'data-flow' },
+];
+
+// ─── STATE ──────────────────────────────────────────────────────
+
+const state = {
+  layers: {},
+  connTypes: {},
+  comments: [],
+  zoom: 1,
+  panX: 0, panY: 0,
+  activePreset: 'full',
+  modalTarget: null,
+};
+
+Object.keys(LAYERS).forEach(k => state.layers[k] = true);
+Object.keys(CONN_TYPES).forEach(k => state.connTypes[k] = true);
+
+const PRESETS = {
+  'full':       { label: 'Full System',     layers: Object.keys(LAYERS), conns: Object.keys(CONN_TYPES) },
+  'planning':   { label: 'Planning Flow',   layers: ['entry','sdd-agent','infra','artifacts'], conns: ['orchestrates','data-flow','produces'] },
+  'implement':  { label: 'Implementation',  layers: ['entry','impl-agent','review','infra','artifacts'], conns: ['orchestrates','data-flow','produces','reviews','deploys-to'] },
+  'learning':   { label: 'Compound Learning', layers: ['entry','impl-agent','compound','artifacts'], conns: ['orchestrates','captures','produces'] },
+  'data-flow':  { label: 'Data Flow',       layers: Object.keys(LAYERS), conns: ['data-flow','produces'] },
+  'review':     { label: 'Review & Quality',layers: ['entry','impl-agent','review','artifacts'], conns: ['orchestrates','reviews','produces'] },
+};
+
+// ─── RENDERING ──────────────────────────────────────────────────
+
+const svg = document.getElementById('canvas');
+
+function getNodeCenter(n) {
+  return { x: n.x + n.w / 2, y: n.y + n.h / 2 };
+}
+
+function renderDiagram() {
+  const vb = `${-20 + state.panX} ${-10 + state.panY} ${1020 / state.zoom} ${620 / state.zoom}`;
+  svg.setAttribute('viewBox', vb);
+
+  let html = '<defs>';
+  Object.entries(CONN_TYPES).forEach(([key, ct]) => {
+    html += `<marker id="arrow-${key}" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="${ct.color}"/>
+    </marker>`;
+  });
+  html += '</defs>';
+
+  // Draw connections
+  connections.forEach(c => {
+    if (!state.connTypes[c.type]) return;
+    const fromNode = nodes.find(n => n.id === c.from);
+    const toNode = nodes.find(n => n.id === c.to);
+    if (!fromNode || !toNode) return;
+    if (!state.layers[fromNode.layer] || !state.layers[toNode.layer]) return;
+
+    const f = getNodeCenter(fromNode);
+    const t = getNodeCenter(toNode);
+    const ct = CONN_TYPES[c.type];
+    const dx = t.x - f.x, dy = t.y - f.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const ux = dx/dist, uy = dy/dist;
+
+    // Start from edge of source node
+    const sx = f.x + ux * (fromNode.w/2 * Math.abs(ux) + fromNode.h/2 * Math.abs(uy));
+    const sy = f.y + uy * (fromNode.w/2 * Math.abs(ux) + fromNode.h/2 * Math.abs(uy));
+    const ex = t.x - ux * (toNode.w/2 * Math.abs(ux) + toNode.h/2 * Math.abs(uy));
+    const ey = t.y - uy * (toNode.w/2 * Math.abs(ux) + toNode.h/2 * Math.abs(uy));
+
+    const mx = (sx+ex)/2, my = (sy+ey)/2;
+    const cx1 = sx + (mx-sx)*0.5 - (ey-sy)*0.15;
+    const cy1 = sy + (my-sy)*0.5 + (ex-sx)*0.15;
+    const cx2 = ex - (ex-mx)*0.5 - (ey-sy)*0.15;
+    const cy2 = ey - (ey-my)*0.5 + (ex-sx)*0.15;
+
+    const dashAttr = ct.dash ? `stroke-dasharray="${ct.dash}"` : '';
+    html += `<path d="M${sx},${sy} C${cx1},${cy1} ${cx2},${cy2} ${ex},${ey}"
+      stroke="${ct.color}" stroke-width="1.5" fill="none" opacity="0.55"
+      marker-end="url(#arrow-${c.type})" ${dashAttr}/>`;
+
+    if (c.label) {
+      html += `<text x="${mx}" y="${my-5}" text-anchor="middle" fill="${ct.color}" font-size="10" font-weight="600">${c.label}</text>`;
+    }
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    if (!state.layers[n.layer]) return;
+    const layer = LAYERS[n.layer];
+    const hasComment = state.comments.some(c => c.target === n.id);
+    const strokeColor = hasComment ? '#f97316' : layer.color;
+    const strokeWidth = hasComment ? 2.5 : 1.5;
+
+    html += `<g class="node" data-id="${n.id}" style="cursor:pointer" onclick="openModal('${n.id}')">
+      <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8"
+        fill="${layer.fill}" stroke="${strokeColor}" stroke-width="${strokeWidth}" opacity="0.95"/>
+      <text x="${n.x + n.w/2}" y="${n.y + 18}" text-anchor="middle"
+        fill="${layer.color}" font-size="12" font-weight="600">${n.label}</text>
+      <text x="${n.x + n.w/2}" y="${n.y + 32}" text-anchor="middle"
+        fill="#8b949e" font-size="10">${n.subtitle}</text>`;
+    if (hasComment) {
+      html += `<circle cx="${n.x + n.w - 6}" cy="${n.y + 6}" r="5" fill="#f97316"/>
+        <text x="${n.x + n.w - 6}" y="${n.y + 9.5}" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">${state.comments.filter(c=>c.target===n.id).length}</text>`;
+    }
+    html += '</g>';
+  });
+
+  svg.innerHTML = html;
+}
+
+// ─── CONTROLS ───────────────────────────────────────────────────
+
+function buildPresets() {
+  const el = document.getElementById('presets');
+  el.innerHTML = Object.entries(PRESETS).map(([key, p]) =>
+    `<button class="preset-btn ${state.activePreset===key?'active':''}" onclick="applyPreset('${key}')">${p.label}</button>`
+  ).join('');
+}
+
+function buildLayerToggles() {
+  const el = document.getElementById('layer-toggles');
+  el.innerHTML = Object.entries(LAYERS).map(([key, l]) =>
+    `<label class="layer-toggle">
+      <input type="checkbox" ${state.layers[key]?'checked':''} onchange="toggleLayer('${key}', this.checked)">
+      <div class="layer-swatch" style="background:${l.color}"></div>
+      <span>${l.label}</span>
+    </label>`
+  ).join('');
+}
+
+function buildConnToggles() {
+  const el = document.getElementById('conn-toggles');
+  el.innerHTML = Object.entries(CONN_TYPES).map(([key, ct]) =>
+    `<label class="conn-toggle">
+      <input type="checkbox" ${state.connTypes[key]?'checked':''} onchange="toggleConn('${key}', this.checked)">
+      <div class="conn-line" style="background:${ct.color};${ct.dash?'border-top:2px dashed '+ct.color+';background:none':''}"></div>
+      <span>${ct.label}</span>
+    </label>`
+  ).join('');
+}
+
+function buildLegend() {
+  const el = document.getElementById('legend');
+  let html = '';
+  Object.entries(LAYERS).filter(([k])=>state.layers[k]).forEach(([k, l]) => {
+    html += `<div class="legend-item"><div class="legend-swatch" style="background:${l.color}"></div>${l.label}</div>`;
+  });
+  Object.entries(CONN_TYPES).filter(([k])=>state.connTypes[k]).forEach(([k, ct]) => {
+    const style = ct.dash ? `border-top:2px dashed ${ct.color}` : `border-top:2px solid ${ct.color}`;
+    html += `<div class="legend-item"><div class="legend-line" style="${style}"></div>${ct.label}</div>`;
+  });
+  el.innerHTML = html;
+}
+
+function buildComments() {
+  const el = document.getElementById('comments-list');
+  const countEl = document.getElementById('comment-count');
+  countEl.textContent = state.comments.length ? `(${state.comments.length})` : '';
+  if (!state.comments.length) {
+    el.innerHTML = '<div class="no-comments">Click a component to add feedback</div>';
+    return;
+  }
+  el.innerHTML = state.comments.map((c, i) =>
+    `<div class="comment-item">
+      <button class="del" onclick="deleteComment(${i})">&times;</button>
+      <div class="target">${c.targetLabel}</div>
+      <div class="text">${c.text}</div>
+    </div>`
+  ).join('');
+}
+
+// ─── ACTIONS ────────────────────────────────────────────────────
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  state.activePreset = key;
+  Object.keys(LAYERS).forEach(k => state.layers[k] = p.layers.includes(k));
+  Object.keys(CONN_TYPES).forEach(k => state.connTypes[k] = p.conns.includes(k));
+  updateAll();
+}
+
+function toggleLayer(key, checked) {
+  state.layers[key] = checked;
+  state.activePreset = null;
+  updateAll();
+}
+
+function toggleConn(key, checked) {
+  state.connTypes[key] = checked;
+  state.activePreset = null;
+  updateAll();
+}
+
+function zoom(delta) {
+  state.zoom = Math.max(0.4, Math.min(3, state.zoom + delta));
+  renderDiagram();
+}
+
+function resetZoom() {
+  state.zoom = 1; state.panX = 0; state.panY = 0;
+  renderDiagram();
+}
+
+// Pan with mouse drag
+let dragging = false, lastX, lastY;
+const wrap = document.getElementById('canvas-wrap');
+wrap.addEventListener('mousedown', e => { if (e.target === svg || e.target.tagName === 'svg') { dragging = true; lastX = e.clientX; lastY = e.clientY; }});
+wrap.addEventListener('mousemove', e => { if (dragging) { state.panX -= (e.clientX - lastX) / state.zoom; state.panY -= (e.clientY - lastY) / state.zoom; lastX = e.clientX; lastY = e.clientY; renderDiagram(); }});
+wrap.addEventListener('mouseup', () => dragging = false);
+wrap.addEventListener('mouseleave', () => dragging = false);
+wrap.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? -0.08 : 0.08); }, { passive: false });
+
+// Modal
+function openModal(nodeId) {
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  state.modalTarget = node;
+  document.getElementById('modal-title').textContent = node.label;
+  document.getElementById('modal-subtitle').textContent = node.subtitle;
+  document.getElementById('modal-input').value = '';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-input').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  state.modalTarget = null;
+}
+
+function saveComment() {
+  const text = document.getElementById('modal-input').value.trim();
+  if (!text || !state.modalTarget) return;
+  state.comments.push({
+    id: Date.now(),
+    target: state.modalTarget.id,
+    targetLabel: state.modalTarget.label,
+    targetFile: state.modalTarget.subtitle,
+    text: text
+  });
+  closeModal();
+  updateAll();
+}
+
+function deleteComment(idx) {
+  state.comments.splice(idx, 1);
+  updateAll();
+}
+
+document.getElementById('modal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveComment();
+  if (e.key === 'Escape') closeModal();
+});
+
+// ─── PROMPT ─────────────────────────────────────────────────────
+
+function updatePrompt() {
+  const parts = [];
+  const visibleLayers = Object.entries(state.layers).filter(([,v])=>v).map(([k])=>LAYERS[k].label);
+  const allVisible = visibleLayers.length === Object.keys(LAYERS).length;
+
+  if (state.activePreset && state.activePreset !== 'full') {
+    parts.push(`Viewing the "${PRESETS[state.activePreset].label}" perspective of the AI-IaC architecture.`);
+  } else if (!allVisible) {
+    parts.push(`Viewing the AI-IaC architecture, focusing on: ${visibleLayers.join(', ')}.`);
+  } else {
+    parts.push('Viewing the full AI-IaC Spec-Driven Development architecture.');
+  }
+
+  if (state.comments.length) {
+    parts.push('');
+    parts.push('Feedback on specific components:');
+    state.comments.forEach(c => {
+      parts.push('');
+      parts.push(`**${c.targetLabel}** (${c.targetFile}):`);
+      parts.push(c.text);
+    });
+  }
+
+  document.getElementById('prompt-text').textContent = parts.join('\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1500);
+}
+
+// ─── UPDATE ALL ─────────────────────────────────────────────────
+
+function updateAll() {
+  buildPresets();
+  buildLayerToggles();
+  buildConnToggles();
+  buildLegend();
+  buildComments();
+  renderDiagram();
+  updatePrompt();
+}
+
+updateAll();
+</script>
+</body>
+</html>

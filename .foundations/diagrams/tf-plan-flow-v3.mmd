@@ -1,0 +1,114 @@
+graph TB
+    %% ── Header Row ──────────────────────────────────────────────
+    subgraph Header[" "]
+        direction LR
+        Start(["/tf-plan [description]"])
+        subgraph Legend["Legend"]
+            direction LR
+            L1["Bash Script"]
+            L2["Agent"]
+            L3["Orchestrator Action"]
+            L4{{"User Interaction"}}
+        end
+    end
+    Start --> Phase1
+
+    %% ── Phase 1: Setup ──────────────────────────────────────────
+    subgraph Phase1["Phase 1 — Setup"]
+        direction LR
+        subgraph S0["Step 0 — Env Validation"]
+            direction TB
+            S0a["validate-env.sh"]
+            S0b["MCP list_terraform_orgs<br/>verification"]
+            S0a --> S0b
+        end
+        subgraph S1["Step 1 — Requirements Intake + Branch"]
+            direction TB
+            S1a["Gather requirements using<br/>issue template as guide"]
+            S1b["Create GitHub issue<br/>(audit trail)"]
+            S1c["Create feature branch +<br/>specs/ directory"]
+            S1a --> S1b --> S1c
+        end
+        S0 --> S1
+    end
+
+    %% ── Phase 2: Specification ──────────────────────────────────
+    subgraph Phase2["Phase 2 — Specification"]
+        direction LR
+        subgraph S2["Step 2 — Specify"]
+            direction TB
+            S2ag["sdd-specify<br/>→ spec.md"]
+        end
+        subgraph S3["Step 3 — Checklist"]
+            direction TB
+            S3a["sdd-checklist<br/>Quality-validates the spec"]
+        end
+        subgraph S4["Step 4 — Clarify"]
+            direction TB
+            S4a["sdd-clarify<br/>Resolves gaps using<br/>checklist findings"]
+            S4b["Updates spec.md with resolutions"]
+            S4a --> S4b
+        end
+        S2 --> S3 --> S4
+    end
+
+    %% ── Phase 3: Research + Planning ────────────────────────────
+    subgraph Phase3["Phase 3 — Research + Planning"]
+        direction LR
+        subgraph S5a["Step 5 — Research"]
+            direction TB
+            S5a1["sdd-research × N<br/>(parallel)"]
+        end
+        subgraph S5b["Step 6 — Plan Draft"]
+            direction TB
+            S5b1["sdd-plan-draft × N<br/>(parallel)<br/>→ plan.md, data-model.md,<br/>contracts/"]
+        end
+        S5a --> S5b
+    end
+
+    %% ── Phase 4: Tasks + Analysis ───────────────────────────────
+    subgraph Phase4["Phase 4 — Tasks + Analysis"]
+        direction LR
+        subgraph S6["Step 7 — Tasks Generation"]
+            direction TB
+            S6a["sdd-tasks × N<br/>(parallel)<br/>→ tasks.md"]
+        end
+        subgraph S7["Step 8 — Cross-Artifact Analysis"]
+            direction TB
+            S7a["sdd-analyze × N<br/>(parallel)<br/>→ analysis.md"]
+        end
+        S6 --> S7
+    end
+
+    %% ── Phase 5: Summary + Approval ─────────────────────────────
+    subgraph Phase5["Phase 5 — Summary + Approval"]
+        direction LR
+        S8a["Compile artifacts,<br/>analysis, blockers"]
+        S8b["Post to GitHub issue"]
+        S8c["Add agent:awaiting-review label"]
+        S8a --> S8b --> S8c
+    end
+
+    Phase1 --> Phase2 --> Phase3 --> Phase4 --> Phase5
+    Phase5 --> Approval{{"Human Approval"}}
+    Approval --> Handoff(["→ /tf-implement"])
+
+    %% ════════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ════════════════════════════════════════════════════════════════
+    classDef script fill:#e8daef,stroke:#8e44ad,color:#000
+    classDef agent fill:#d4e6f1,stroke:#2980b9,color:#000
+    classDef orch fill:#d5f5e3,stroke:#27ae60,color:#000
+    classDef approval fill:#fadbd8,stroke:#e74c3c,color:#000
+
+    %% Scripts
+    class S0a,S0b,L1 script
+
+    %% Agents
+    class S2ag,S3a,S4a,S5a1,S5b1,S6a,S7a,L2 agent
+
+    %% Orchestrator actions
+    class S1a,S1b,S1c,S8a,S8b,S8c,L3 orch
+
+    %% Approval
+    class Approval,L4 approval

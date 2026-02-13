@@ -1,0 +1,356 @@
+name: "🤖 Agent-Driven Module Development"
+description: "Template for AI agents to gather requirements for developing a Terraform module following spec-driven workflow"
+title: "[AGENT MODULE] "
+labels: ["agent-driven", "terraform", "module-development"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # AI Agent Module Development
+
+        This template is designed for AI agents to systematically gather all required information
+        for developing a Terraform module following the spec-driven workflow.
+
+  # ============================================================================
+  # Module Identity
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📦 Module Identity
+
+        **REQUIRED for module scaffold and naming**
+
+  - type: input
+    id: module_name
+    attributes:
+      label: "Module Name"
+      description: "Module name following terraform-<PROVIDER>-<NAME> convention (REQUIRED)"
+      placeholder: "e.g., terraform-aws-vpc, terraform-aws-eks, terraform-azure-vnet"
+    validations:
+      required: true
+
+  - type: input
+    id: feature_branch
+    attributes:
+      label: "Feature Branch Name"
+      description: "Git branch for this work. Leave blank to auto-generate from module name"
+      placeholder: "e.g., feat/vpc-module, 001-initial-vpc"
+
+  - type: dropdown
+    id: terraform_version
+    attributes:
+      label: "Terraform Version"
+      description: "Minimum Terraform version this module should support"
+      options:
+        - "Latest (recommended)"
+        - "1.10.x"
+        - "1.9.x"
+        - "1.8.x"
+        - "1.7.x"
+        - "Other (specify in Additional Context)"
+      default: 0
+    validations:
+      required: true
+
+  # ============================================================================
+  # Module Description
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📝 Module Description
+
+  - type: textarea
+    id: module_description
+    attributes:
+      label: "Module Purpose & Description"
+      description: "What infrastructure does this module manage? What problem does it solve?"
+      placeholder: |
+        Example:
+        - Creates a production-ready VPC with public and private subnets
+        - Supports configurable number of AZs and subnet CIDR blocks
+        - Includes optional NAT Gateway for private subnet internet access
+        - Provides flexible security group management
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_requirements
+    attributes:
+      label: "Business Requirements & Use Case"
+      description: "Business problem, expected outcomes, and success criteria for this module"
+      placeholder: |
+        Example:
+        - Standardize VPC creation across the organization
+        - Enforce security best practices (no public subnets without justification)
+        - Reduce time to provision networking from days to minutes
+        - Success: Module consumers can deploy a compliant VPC in under 5 minutes
+    validations:
+      required: true
+
+  # ============================================================================
+  # Cloud Infrastructure Details
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ☁️ Cloud Infrastructure Details
+
+  - type: dropdown
+    id: cloud_provider
+    attributes:
+      label: "Cloud Provider"
+      description: "Primary cloud provider for this module"
+      options:
+        - AWS
+        - Azure
+        - GCP
+        - Multi-cloud
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: specific_resources
+    attributes:
+      label: "Resources to Create"
+      description: "List the specific Terraform resources this module should manage"
+      placeholder: |
+        Example:
+        - aws_vpc (primary VPC)
+        - aws_subnet (public and private, per AZ)
+        - aws_internet_gateway
+        - aws_nat_gateway (optional, configurable)
+        - aws_eip (for NAT Gateway)
+        - aws_route_table (public and private)
+        - aws_route_table_association
+        - aws_vpc_flow_log (optional)
+    validations:
+      required: true
+
+  - type: textarea
+    id: input_variables
+    attributes:
+      label: "Key Input Variables"
+      description: "Essential input variables the module should accept"
+      placeholder: |
+        Example:
+        - name: Name prefix for all resources (string, required)
+        - vpc_cidr: CIDR block for the VPC (string, required)
+        - availability_zones: List of AZs to use (list(string), required)
+        - public_subnet_cidrs: CIDRs for public subnets (list(string), required)
+        - private_subnet_cidrs: CIDRs for private subnets (list(string), required)
+        - enable_nat_gateway: Whether to create NAT (bool, optional, default: false)
+        - tags: Additional tags (map(string), optional)
+    validations:
+      required: true
+
+  - type: textarea
+    id: output_variables
+    attributes:
+      label: "Key Output Variables"
+      description: "Essential outputs the module should provide"
+      placeholder: |
+        Example:
+        - vpc_id: ID of the created VPC
+        - vpc_cidr_block: CIDR block of the VPC
+        - public_subnet_ids: List of public subnet IDs
+        - private_subnet_ids: List of private subnet IDs
+        - nat_gateway_ids: List of NAT Gateway IDs (if enabled)
+    validations:
+      required: true
+
+  - type: textarea
+    id: terraform_constraints
+    attributes:
+      label: "Provider Version Constraints"
+      description: "Provider version constraints for this module"
+      placeholder: |
+        Example:
+        - AWS Provider >= 5.0 (use minimum version that supports required features)
+        - Random Provider ~> 3.0 (if needed for naming)
+        - Must be registry-compatible (no local paths)
+
+  # ============================================================================
+  # Security & Compliance
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🔒 Security & Compliance Requirements
+
+  - type: checkboxes
+    id: security_requirements
+    attributes:
+      label: "Security Controls"
+      description: "Select all security requirements this module must enforce"
+      options:
+        - label: "Encryption at rest using KMS/customer-managed keys"
+        - label: "Encryption in transit (TLS/SSL, HTTPS only)"
+        - label: "Network isolation (private subnets, security groups, NACLs)"
+        - label: "IAM least privilege access (no wildcard permissions)"
+        - label: "Secrets management integration (AWS Secrets Manager, HashiCorp Vault)"
+        - label: "Audit logging and monitoring (CloudTrail, CloudWatch, VPC Flow Logs)"
+        - label: "Public access blocking (no public IPs unless explicitly enabled)"
+        - label: "Certificate management (ACM)"
+        - label: "Default deny security group rules"
+        - label: "Resource tagging enforcement"
+
+  - type: textarea
+    id: compliance_standards
+    attributes:
+      label: "Compliance Standards & Frameworks"
+      description: "List compliance frameworks this module must support"
+      placeholder: |
+        Example:
+        - CIS AWS Foundations Benchmark Level 2
+        - SOC 2 Type II
+        - PCI DSS Level 1
+        - HIPAA
+        - Company Security Policy v2.3
+
+  - type: textarea
+    id: specific_security_requirements
+    attributes:
+      label: "Specific Security Requirements"
+      description: "Detailed security configurations the module must implement"
+      placeholder: |
+        Example:
+        - All S3 buckets must block public access by default
+        - VPC Flow Logs must be enabled by default
+        - Security groups must not allow 0.0.0.0/0 inbound by default
+        - All resources must support customer-managed KMS keys
+        - Module must not create IAM roles with wildcard actions
+
+  # ============================================================================
+  # Workflow Configuration
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ⚙️ Workflow Configuration
+
+  - type: dropdown
+    id: approval_gate
+    attributes:
+      label: "Planning Approval Gate"
+      description: "Should the workflow pause after planning for human review before implementation?"
+      options:
+        - "Pause after planning for review (recommended)"
+        - "Fully autonomous (plan and implement without pause)"
+      default: 0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: workflow_preferences
+    attributes:
+      label: "Workflow Execution Preferences"
+      description: "How should the agent execute the workflow?"
+      options:
+        - label: "Create new Git branch for this work"
+        - label: "Follow complete workflow (all planning + implementation phases)"
+        - label: "Run design review subagents (aws-security-advisor, code-quality-judge)"
+        - label: "Run automated testing (terraform test, terraform validate)"
+        - label: "Commit changes after each major phase completion"
+        - label: "Update GitHub issue with progress comments after each phase"
+        - label: "Generate comprehensive module readiness report (tf-report-generator)"
+        - label: "Run compound learning phase (capture patterns, pitfalls, update AGENTS.md)"
+        - label: "Create pull request for review after completion"
+        - label: "Create examples/ configurations for basic and complete usage"
+
+  - type: dropdown
+    id: agent_autonomy
+    attributes:
+      label: "Agent Autonomy Level"
+      description: "How autonomous should the agent be in making decisions?"
+      options:
+        - "🤖 Fully Autonomous (make all decisions, resolve issues independently, no prompts)"
+        - "🤝 Semi-Autonomous (ask for approval on major decisions like resource design)"
+        - "💬 Interactive (prompt frequently for guidance and confirmations)"
+      default: 0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: workflow_phases
+    attributes:
+      label: "Workflow Phases to Execute"
+      description: "Select which phases the agent should execute (recommended: all phases)"
+      options:
+        - label: "/tf-plan Step 0: Requirements intake & environment validation"
+        - label: "/tf-plan Step 1-3: Specify + checklist + clarify"
+        - label: "/tf-plan Step 4-5: Plan + research + design review"
+        - label: "/tf-plan Step 6-8: Tasks + analysis + validation summary"
+        - label: "/tf-implement Step 1-2: Implementation by phase"
+        - label: "/tf-implement Step 3: Testing (terraform test, validate, fmt)"
+        - label: "/tf-implement Step 4: Module readiness report"
+        - label: "/tf-implement Step 5: Compound learning (capture patterns & pitfalls)"
+        - label: "/tf-implement Step 6: Cleanup + PR creation"
+
+  # ============================================================================
+  # Additional Context
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📄 Additional Information
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: "Additional Context & Special Requirements"
+      description: "Any other information, constraints, dependencies, or special requirements"
+      placeholder: |
+        Example:
+        - This module replaces an existing community module we've outgrown
+        - Must support both single-AZ and multi-AZ deployments
+        - Should be compatible with our existing EKS and RDS modules
+        - Must follow HashiCorp module structure conventions
+        - Module will be published to private registry
+        - Team needs documentation for onboarding
+
+  - type: textarea
+    id: success_criteria
+    attributes:
+      label: "Success Criteria & Acceptance"
+      description: "How will we know this module is ready? What are the acceptance criteria?"
+      placeholder: |
+        Example:
+        - ✅ terraform validate passes with no errors
+        - ✅ All .tftest.hcl tests pass via terraform test
+        - ✅ terraform fmt -check reports no formatting issues
+        - ✅ examples/basic/ and examples/complete/ plan and apply successfully
+        - ✅ No CRITICAL/HIGH findings from trivy security scan
+        - ✅ Code quality score > 80% (code-quality-judge)
+        - ✅ README.md includes all inputs, outputs, and usage examples
+        - ✅ All Terraform code committed to feature branch
+        - ✅ Pull request created for review
+
+  - type: textarea
+    id: constraints_limitations
+    attributes:
+      label: "Known Constraints or Limitations"
+      description: "Technical, organizational, or timeline constraints"
+      placeholder: |
+        Example:
+        - Must not use external provisioners (local-exec, remote-exec)
+        - Must be compatible with Terraform >= 1.5.0
+        - Cannot use experimental Terraform features
+        - Must support all commercial AWS regions
+        - Module must not exceed 20 resources for maintainability
+        - No third-party provider dependencies

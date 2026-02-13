@@ -1,0 +1,359 @@
+name: "📋 Terraform Module Development"
+description: "Capture requirements for developing a new Terraform module — module interface, supported use cases, and test scenarios"
+title: "[MODULE] "
+labels: ["module-development", "planning", "needs-review"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Terraform Module Development
+
+        Use this template to define a new Terraform module's public interface, supported use cases, and test scenarios.
+        This feeds into the spec-driven development workflow via `/tf-plan`.
+
+  # ============================================================================
+  # Module Identity & Purpose
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📦 Module Identity & Purpose
+
+  - type: input
+    id: module_name
+    attributes:
+      label: "Module Name"
+      description: "Module name following terraform-<PROVIDER>-<NAME> convention"
+      placeholder: "e.g., terraform-aws-vpc, terraform-aws-eks, terraform-azure-vnet"
+    validations:
+      required: true
+
+  - type: textarea
+    id: module_purpose
+    attributes:
+      label: "Module Purpose"
+      description: "What infrastructure does this module manage? What problem does it solve for consumers?"
+      placeholder: |
+        Example:
+        - Creates a production-ready VPC with public and private subnets
+        - Supports configurable number of AZs and subnet CIDR blocks
+        - Includes optional NAT Gateway for private subnet internet access
+        - Enables consumers to deploy compliant networking in minutes
+    validations:
+      required: true
+
+  - type: textarea
+    id: supported_use_cases
+    attributes:
+      label: "Supported Use Cases"
+      description: "Describe the primary use cases this module should support"
+      placeholder: |
+        Example:
+        - Basic: Single-AZ VPC with one public and one private subnet
+        - Standard: Multi-AZ VPC with NAT Gateway and VPC Flow Logs
+        - Complete: Multi-AZ VPC with transit gateway attachment, custom DHCP options, and VPN gateway
+    validations:
+      required: true
+
+  # ============================================================================
+  # Target Provider & Version
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ☁️ Target Provider & Version
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: "Target Provider"
+      description: "Primary cloud provider for this module"
+      options:
+        - AWS
+        - Azure
+        - GCP
+        - Multi-cloud
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: minimum_provider_version
+    attributes:
+      label: "Minimum Provider Version"
+      description: "Minimum provider version constraint (use latest major if no dependencies exist)"
+      placeholder: "e.g., ~> 5.0, >= 6.0, ~> 4.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: terraform_version
+    attributes:
+      label: "Minimum Terraform Version"
+      description: "Minimum Terraform version this module should support"
+      options:
+        - "Latest (recommended)"
+        - "1.10.x"
+        - "1.9.x"
+        - "1.8.x"
+        - "1.7.x"
+        - "Other (specify in Additional Context)"
+      default: 0
+    validations:
+      required: true
+
+  # ============================================================================
+  # Supported Resources & Configurations
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🏗️ Supported Resources & Configurations
+
+  - type: textarea
+    id: resource_types
+    attributes:
+      label: "Resource Types"
+      description: "List the Terraform resources this module should manage"
+      placeholder: |
+        Example:
+        - aws_vpc (primary VPC)
+        - aws_subnet (public and private, per AZ)
+        - aws_internet_gateway
+        - aws_nat_gateway (optional, configurable)
+        - aws_eip (for NAT Gateway)
+        - aws_route_table (public and private)
+        - aws_route_table_association
+        - aws_vpc_flow_log (optional, enabled by default)
+    validations:
+      required: true
+
+  - type: textarea
+    id: resource_configurations
+    attributes:
+      label: "Resource Configurations & Behaviors"
+      description: "Describe configurable behaviors, feature flags, and conditional resource creation"
+      placeholder: |
+        Example:
+        - NAT Gateway: optional, single or one-per-AZ mode
+        - VPC Flow Logs: enabled by default, configurable log destination (CloudWatch or S3)
+        - DNS support: enabled by default (enable_dns_support, enable_dns_hostnames)
+        - Public subnets: map_public_ip_on_launch defaults to false
+
+  # ============================================================================
+  # Input Variable Interface
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📥 Input Variable Interface
+
+        Define what should be configurable by module consumers.
+
+  - type: textarea
+    id: input_variables
+    attributes:
+      label: "Input Variables"
+      description: "Key input variables the module should accept (name, type, required/optional, default, description)"
+      placeholder: |
+        Example:
+        - name: string, required — Name prefix for all resources
+        - vpc_cidr: string, required — CIDR block for the VPC
+        - availability_zones: list(string), required — List of AZs to use
+        - public_subnet_cidrs: list(string), required — CIDRs for public subnets
+        - private_subnet_cidrs: list(string), required — CIDRs for private subnets
+        - enable_nat_gateway: bool, optional, default: false — Create NAT Gateway
+        - single_nat_gateway: bool, optional, default: true — Use single NAT vs one per AZ
+        - enable_flow_logs: bool, optional, default: true — Enable VPC Flow Logs
+        - tags: map(string), optional, default: {} — Additional resource tags
+    validations:
+      required: true
+
+  # ============================================================================
+  # Output Contract
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📤 Output Contract
+
+        Define what consumers should be able to reference from this module.
+
+  - type: textarea
+    id: output_variables
+    attributes:
+      label: "Output Variables"
+      description: "Outputs the module must expose for consumers to reference"
+      placeholder: |
+        Example:
+        - vpc_id: string — ID of the created VPC
+        - vpc_cidr_block: string — CIDR block of the VPC
+        - public_subnet_ids: list(string) — List of public subnet IDs
+        - private_subnet_ids: list(string) — List of private subnet IDs
+        - nat_gateway_ids: list(string) — NAT Gateway IDs (empty if disabled)
+        - default_security_group_id: string — Default security group ID
+    validations:
+      required: true
+
+  # ============================================================================
+  # Example Configurations
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📂 Example Configurations
+
+  - type: textarea
+    id: example_configurations
+    attributes:
+      label: "Example Configurations to Include"
+      description: "Describe the example configurations that should ship with this module under examples/"
+      placeholder: |
+        Example:
+        - examples/basic/ — Minimal VPC with one public subnet, no NAT
+        - examples/complete/ — Multi-AZ VPC with NAT, Flow Logs, and all features enabled
+        - examples/private-only/ — VPC with only private subnets and VPN gateway
+    validations:
+      required: true
+
+  # ============================================================================
+  # Testing Strategy
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🧪 Testing Strategy
+
+  - type: textarea
+    id: testing_strategy
+    attributes:
+      label: "Testing Strategy"
+      description: "Describe unit tests, integration tests, and example-based tests for this module"
+      placeholder: |
+        Example:
+        Unit tests (terraform test, plan-only):
+        - Validate default values produce valid plan
+        - Validate NAT Gateway resources only created when enable_nat_gateway = true
+        - Validate subnet count matches availability_zones length
+        - Validate output values are populated
+
+        Integration tests (terraform test, apply):
+        - Deploy basic example and verify VPC exists
+        - Deploy complete example and verify connectivity
+
+        Example validation:
+        - examples/basic/ plans and applies successfully
+        - examples/complete/ plans and applies successfully
+    validations:
+      required: true
+
+  # ============================================================================
+  # Security Requirements
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🔒 Security Requirements
+
+  - type: checkboxes
+    id: security_requirements
+    attributes:
+      label: "Security Controls"
+      description: "Select security controls this module should enforce as secure defaults"
+      options:
+        - label: "Encryption at rest (KMS/customer-managed keys)"
+        - label: "Encryption in transit (TLS/SSL, HTTPS only)"
+        - label: "Network isolation (private subnets, security groups, NACLs)"
+        - label: "IAM least privilege (no wildcard permissions)"
+        - label: "Audit logging enabled by default (CloudTrail, CloudWatch, Flow Logs)"
+        - label: "Public access blocked by default"
+        - label: "Default deny security group rules"
+        - label: "Resource tagging enforcement"
+
+  - type: textarea
+    id: specific_security_requirements
+    attributes:
+      label: "Specific Security Requirements"
+      description: "Detailed security configurations the module must implement"
+      placeholder: |
+        Example:
+        - VPC Flow Logs enabled by default
+        - Default security group denies all inbound traffic
+        - No public IPs assigned unless explicitly enabled
+        - All resources support customer-managed KMS keys
+
+  # ============================================================================
+  # Target Registry & Publishing
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🏢 Target Registry
+
+  - type: input
+    id: registry_organization
+    attributes:
+      label: "Target Private Registry Organization"
+      description: "HCP Terraform / Terraform Enterprise organization for publishing this module"
+      placeholder: "e.g., my-org, acme-corp"
+
+  - type: dropdown
+    id: registry_visibility
+    attributes:
+      label: "Registry Visibility"
+      description: "Should this module be published as public or private?"
+      options:
+        - "Private (organization only)"
+        - "Public (Terraform Registry)"
+      default: 0
+
+  # ============================================================================
+  # Additional Context
+  # ============================================================================
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📄 Additional Context
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Module Dependencies"
+      description: "Other modules or pre-existing resources this module depends on or integrates with"
+      placeholder: |
+        Example:
+        - Existing Route53 hosted zone
+        - Shared KMS key for encryption
+        - Companion EKS module (consumes VPC outputs)
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: "Additional Context"
+      description: "Any other constraints, migration notes, or special requirements"
+      placeholder: |
+        Example:
+        - Replaces existing community module we've outgrown
+        - Must support both single-AZ and multi-AZ deployments
+        - Should be compatible with our existing EKS and RDS modules

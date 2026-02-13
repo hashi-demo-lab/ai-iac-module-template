@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-IaC Concept Map</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Canvas */
+  .canvas-area { flex: 1; position: relative; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* Tooltip */
+  .tooltip { display: none; position: absolute; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; font-size: 12px; max-width: 260px; pointer-events: none; z-index: 50; box-shadow: 0 8px 24px #00000066; }
+  .tooltip .tt-title { font-weight: 600; color: #f0f6fc; margin-bottom: 3px; }
+  .tooltip .tt-path { font-family: 'SF Mono', monospace; color: #8b949e; font-size: 11px; margin-bottom: 6px; }
+  .tooltip .tt-desc { color: #c9d1d9; line-height: 1.4; }
+
+  /* Edge draw mode indicator */
+  .edge-mode { display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: #1f6feb; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 40; pointer-events: none; }
+  .edge-mode.active { display: block; }
+
+  /* Instructions */
+  .instructions { position: absolute; bottom: 12px; left: 12px; background: #161b22dd; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #8b949e; line-height: 1.5; z-index: 30; }
+  .instructions kbd { background: #21262d; border: 1px solid #30363d; border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 10px; color: #c9d1d9; }
+
+  /* Sidebar */
+  .sidebar { width: 340px; min-width: 340px; background: #161b22; border-left: 1px solid #30363d; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Title */
+  .title-bar { padding: 14px 16px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 10px; }
+  .title-bar h1 { font-size: 15px; font-weight: 600; }
+  .title-bar .badge { background: #1f6feb33; color: #58a6ff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+
+  /* Sidebar sections */
+  .sidebar-scroll { flex: 1; overflow-y: auto; }
+  .section { padding: 12px 16px; border-bottom: 1px solid #21262d; }
+  .section h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e; margin-bottom: 8px; }
+
+  /* Presets */
+  .preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+  .preset-btn:hover { background: #30363d; border-color: #58a6ff; }
+  .preset-btn.active { background: #1f6feb; border-color: #58a6ff; color: #fff; }
+
+  /* Edge type selector */
+  .edge-type-sel { display: flex; gap: 4px; flex-wrap: wrap; }
+  .edge-type-btn { background: #21262d; border: 2px solid #30363d; color: #c9d1d9; padding: 4px 10px; border-radius: 14px; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+  .edge-type-btn:hover { background: #30363d; }
+  .edge-type-btn.active { border-color: var(--ec); color: var(--ec); background: #21262d; }
+
+  /* Actions */
+  .action-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .action-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+  .action-btn:hover { background: #30363d; }
+  .action-btn.danger { color: #f85149; }
+  .action-btn.danger:hover { background: #f8514922; }
+
+  /* Node list */
+  .node-list { max-height: 320px; overflow-y: auto; }
+  .node-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px; }
+  .node-item .swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .node-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .knowledge-btn { background: none; border: 1px solid #30363d; border-radius: 4px; padding: 2px 8px; font-size: 10px; cursor: pointer; font-weight: 600; min-width: 62px; text-align: center; transition: all 0.15s; }
+  .knowledge-btn.know { color: #3fb950; border-color: #238636; }
+  .knowledge-btn.fuzzy { color: #d29922; border-color: #9e6a03; }
+  .knowledge-btn.unknown { color: #f85149; border-color: #da3633; }
+  .vis-btn { background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.5; }
+  .vis-btn.visible { opacity: 1; }
+
+  /* Prompt area */
+  .prompt-area { background: #0d1117; border-top: 1px solid #30363d; padding: 12px 16px; max-height: 220px; overflow-y: auto; }
+  .prompt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .prompt-header span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e; }
+  .copy-btn { background: #238636; border: none; color: #fff; padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .copy-btn:hover { background: #2ea043; }
+  .copy-btn.copied { background: #1f6feb; }
+  .prompt-text { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #c9d1d9; line-height: 1.55; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div class="canvas-area" id="canvas-area">
+  <canvas id="canvas"></canvas>
+  <div class="tooltip" id="tooltip">
+    <div class="tt-title" id="tt-title"></div>
+    <div class="tt-path" id="tt-path"></div>
+    <div class="tt-desc" id="tt-desc"></div>
+  </div>
+  <div class="edge-mode" id="edge-mode">Click a target node to connect...</div>
+  <div class="instructions">
+    <kbd>Drag</kbd> nodes to rearrange &bull;
+    <kbd>Shift+Click</kbd> node to draw edge &bull;
+    <kbd>Esc</kbd> cancel edge &bull;
+    <kbd>Right-Click</kbd> edge to delete
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="title-bar">
+    <h1>AI-IaC Concepts</h1>
+    <span class="badge">Learning Map</span>
+  </div>
+
+  <div class="sidebar-scroll">
+    <div class="section">
+      <h2>Presets</h2>
+      <div class="preset-row" id="presets"></div>
+    </div>
+
+    <div class="section">
+      <h2>Edge Type (for new edges)</h2>
+      <div class="edge-type-sel" id="edge-types"></div>
+    </div>
+
+    <div class="section">
+      <h2>Actions</h2>
+      <div class="action-row">
+        <button class="action-btn" onclick="autoLayout()">Auto-Layout</button>
+        <button class="action-btn" onclick="resetKnowledge()">Reset Knowledge</button>
+        <button class="action-btn danger" onclick="clearUserEdges()">Clear My Edges</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Concepts</h2>
+      <div class="node-list" id="node-list"></div>
+    </div>
+  </div>
+
+  <div class="prompt-area">
+    <div class="prompt-header">
+      <span>Prompt Output</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+    </div>
+    <div class="prompt-text" id="prompt-text"></div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────
+
+const CATEGORIES = {
+  'workflow':   { label: 'Workflow',         color: '#f97316' },
+  'agent':      { label: 'Agent',            color: '#3b82f6' },
+  'artifact':   { label: 'Artifact',         color: '#10b981' },
+  'infra':      { label: 'Infrastructure',   color: '#06b6d4' },
+  'pattern':    { label: 'Pattern/Concept',  color: '#a855f7' },
+  'governance': { label: 'Governance',       color: '#ec4899' },
+};
+
+const EDGE_TYPES = {
+  'orchestrates': { label: 'orchestrates',    color: '#eab308' },
+  'produces':     { label: 'produces',        color: '#10b981' },
+  'depends-on':   { label: 'depends on',      color: '#3b82f6' },
+  'consumes':     { label: 'consumes',        color: '#06b6d4' },
+  'enforces':     { label: 'enforces',        color: '#ec4899' },
+  'captures':     { label: 'captures',        color: '#a855f7' },
+};
+
+const KNOWLEDGE = { know: 'Know', fuzzy: 'Fuzzy', unknown: 'Unknown' };
+
+const conceptData = [
+  // Workflows
+  { id: 'sdd-pipeline',      label: 'SDD Pipeline',              cat: 'workflow', desc: 'The 7-stage Spec-Driven Development pipeline: Specify → Clarify → Research → Plan → Checklist → Tasks → Analyze', path: 'AGENTS.md' },
+  { id: 'tf-plan',           label: '/tf-plan',                  cat: 'workflow', desc: 'Planning orchestrator skill. Entry point that drives requirements through specification to task generation.', path: '.claude/skills/tf-plan/' },
+  { id: 'tf-implement',      label: '/tf-implement',             cat: 'workflow', desc: 'Implementation orchestrator skill. Drives task execution, reviews, deployment, reporting, and compound learning.', path: '.claude/skills/tf-implement/' },
+  { id: 'compound-learning', label: 'Compound Learning',         cat: 'workflow', desc: 'Post-implementation cycle that captures patterns, pitfalls, and governance improvements for future reuse.', path: '.foundations/memory/' },
+
+  // Agents
+  { id: 'sdd-specify',       label: 'sdd-specify',              cat: 'agent', desc: 'Drafts feature specifications from plain English requirements. Produces spec.md with user scenarios, requirements, and success criteria.', path: '.claude/agents/sdd-specify.md' },
+  { id: 'sdd-research',      label: 'sdd-research',             cat: 'agent', desc: 'Investigates module availability via private registry and AWS docs. Runs parallel instances — one per research question.', path: '.claude/agents/sdd-research.md' },
+  { id: 'sdd-clarify',       label: 'sdd-clarify',              cat: 'agent', desc: 'Detects ambiguities in specs using an 8-category taxonomy scan. Asks up to 5 clarification questions.', path: '.claude/agents/sdd-clarify.md' },
+  { id: 'sdd-plan-draft',    label: 'sdd-plan-draft',           cat: 'agent', desc: 'Creates implementation plans with module inventory, architecture decisions, and constitution compliance checks.', path: '.claude/agents/sdd-plan-draft.md' },
+  { id: 'sdd-tasks',         label: 'sdd-tasks',                cat: 'agent', desc: 'Generates dependency-ordered task breakdowns from plan artifacts. Produces phased checklist in tasks.md.', path: '.claude/agents/sdd-tasks.md' },
+  { id: 'sdd-analyze',       label: 'sdd-analyze',              cat: 'agent', desc: 'Cross-artifact consistency checker. Detects coverage gaps, terminology drift, and orphaned tasks across spec/plan/tasks.', path: '.claude/agents/sdd-analyze.md' },
+  { id: 'task-executor',     label: 'tf-task-executor',         cat: 'agent', desc: 'Executes individual implementation tasks. Generates .tf files using private registry modules and MCP tools.', path: '.claude/agents/tf-task-executor.md' },
+  { id: 'security-advisor',  label: 'aws-security-advisor',     cat: 'agent', desc: 'Evaluates Terraform code for AWS security vulnerabilities, compliance gaps, and misconfigurations.', path: '.claude/agents/aws-security-advisor.md' },
+  { id: 'quality-judge',     label: 'code-quality-judge',       cat: 'agent', desc: 'Scores Terraform code quality across 6 dimensions with security weighted at 30%. Module-first architecture enforced.', path: '.claude/agents/code-quality-judge.md' },
+  { id: 'deployer',          label: 'tf-deployer',              cat: 'agent', desc: 'Deploys Terraform configurations to HCP Terraform sandbox workspaces. Runs init → plan → apply cycle.', path: '.claude/agents/tf-deployer.md' },
+
+  // Artifacts
+  { id: 'spec-md',           label: 'spec.md',                  cat: 'artifact', desc: 'Feature specification document. Contains user scenarios (P1-P3), functional requirements, entities, edge cases, success criteria.', path: 'specs/<feature>/spec.md' },
+  { id: 'plan-md',           label: 'plan.md',                  cat: 'artifact', desc: 'Implementation plan with module inventory, architectural decisions, project structure, and phase breakdown.', path: 'specs/<feature>/plan.md' },
+  { id: 'tasks-md',          label: 'tasks.md',                 cat: 'artifact', desc: 'Dependency-ordered task list with phases: Setup, Foundational, User Stories, Polish. Uses [T001] numbering.', path: 'specs/<feature>/tasks.md' },
+  { id: 'tf-files',          label: '*.tf files',               cat: 'artifact', desc: 'Generated Terraform configurations: main.tf, variables.tf, outputs.tf, locals.tf, providers.tf. All use private registry modules.', path: 'Root directory' },
+  { id: 'contracts',         label: 'Module Contracts',         cat: 'artifact', desc: 'Module interface definitions: inputs, outputs, data flow tables. Defines how modules wire together.', path: 'specs/<feature>/contracts/' },
+  { id: 'memory-store',      label: 'Memory Store',             cat: 'artifact', desc: 'Compound learning repository. Contains patterns/, pitfalls/, reviews/, and proposed-agents-updates/ directories.', path: '.foundations/memory/' },
+
+  // Infrastructure
+  { id: 'hcp-terraform',     label: 'HCP Terraform',            cat: 'infra', desc: 'HashiCorp Cloud Platform. Provides remote state management, workspace orchestration, and run execution.', path: 'External service' },
+  { id: 'private-registry',  label: 'Private Registry',         cat: 'infra', desc: 'Organization module registry at app.terraform.io/<org>/. The ONLY source for infrastructure modules (constitution 1.1).', path: 'app.terraform.io/<org>/' },
+  { id: 'terraform-mcp',     label: 'Terraform MCP Server',     cat: 'infra', desc: 'Model Context Protocol server providing registry search, workspace management, and run execution APIs.', path: '.mcp.json (Docker)' },
+  { id: 'aws-mcp',           label: 'AWS Knowledge MCP',        cat: 'infra', desc: 'MCP server for AWS documentation search, regional availability checks, and service recommendations.', path: '.mcp.json (HTTP)' },
+
+  // Patterns/Concepts
+  { id: 'module-first',      label: 'Module-First',             cat: 'pattern', desc: 'All infrastructure via private registry modules. No raw provider resources. Constitution rule 1.1.', path: 'Constitution 1.1' },
+  { id: 'security-first',    label: 'Security-First',           cat: 'pattern', desc: 'Zero trust defaults, no long-lived credentials, ephemeral resources for secrets. Security weighted 30% in quality scoring.', path: 'Constitution 1.2' },
+  { id: 'mcp-first',         label: 'MCP-First',                cat: 'pattern', desc: 'Always use MCP tools for registry and AWS queries before general knowledge. Private registry searched before public.', path: 'AGENTS.md' },
+  { id: 'parallel-safe',     label: 'Parallel Where Safe',      cat: 'pattern', desc: 'Independent tasks (research, reviews) run concurrently. MCP-dependent tasks run sequentially to avoid conflicts.', path: 'Core Principle 6' },
+
+  // Governance
+  { id: 'constitution',      label: 'Constitution',             cat: 'governance', desc: 'Governance document (v2.0) with 13 sections covering module-first, security, naming, quality gates, and agent behavior.', path: '.foundations/memory/constitution.md' },
+  { id: 'quality-gates',     label: 'Quality Gates',            cat: 'governance', desc: 'CRITICAL findings block progression. Reviews use evidence-based findings with code citations.', path: 'Core Principle 7' },
+  { id: 'skills-system',     label: 'Skills System',            cat: 'governance', desc: '52 skills organized by domain: implementation patterns, research heuristics, style guides, security baselines, test patterns.', path: '.claude/skills/' },
+];
+
+// Pre-defined edges (the architectural relationships)
+const preEdges = [
+  { from: 'sdd-pipeline', to: 'tf-plan',          type: 'depends-on' },
+  { from: 'sdd-pipeline', to: 'tf-implement',     type: 'depends-on' },
+  { from: 'tf-plan',      to: 'sdd-specify',      type: 'orchestrates' },
+  { from: 'tf-plan',      to: 'sdd-research',     type: 'orchestrates' },
+  { from: 'tf-plan',      to: 'sdd-clarify',      type: 'orchestrates' },
+  { from: 'tf-plan',      to: 'sdd-plan-draft',   type: 'orchestrates' },
+  { from: 'tf-plan',      to: 'sdd-tasks',        type: 'orchestrates' },
+  { from: 'tf-plan',      to: 'sdd-analyze',      type: 'orchestrates' },
+  { from: 'tf-implement', to: 'task-executor',     type: 'orchestrates' },
+  { from: 'tf-implement', to: 'security-advisor',  type: 'orchestrates' },
+  { from: 'tf-implement', to: 'quality-judge',     type: 'orchestrates' },
+  { from: 'tf-implement', to: 'deployer',          type: 'orchestrates' },
+  { from: 'tf-implement', to: 'compound-learning', type: 'orchestrates' },
+  { from: 'sdd-specify',  to: 'spec-md',          type: 'produces' },
+  { from: 'sdd-plan-draft',to: 'plan-md',         type: 'produces' },
+  { from: 'sdd-plan-draft',to: 'contracts',       type: 'produces' },
+  { from: 'sdd-tasks',    to: 'tasks-md',         type: 'produces' },
+  { from: 'task-executor', to: 'tf-files',         type: 'produces' },
+  { from: 'sdd-research', to: 'terraform-mcp',    type: 'consumes' },
+  { from: 'sdd-research', to: 'aws-mcp',          type: 'consumes' },
+  { from: 'task-executor', to: 'private-registry', type: 'consumes' },
+  { from: 'deployer',     to: 'hcp-terraform',    type: 'consumes' },
+  { from: 'compound-learning', to: 'memory-store', type: 'captures' },
+  { from: 'constitution', to: 'module-first',     type: 'enforces' },
+  { from: 'constitution', to: 'security-first',   type: 'enforces' },
+  { from: 'constitution', to: 'quality-gates',    type: 'enforces' },
+  { from: 'sdd-analyze',  to: 'spec-md',          type: 'consumes' },
+  { from: 'sdd-analyze',  to: 'plan-md',          type: 'consumes' },
+  { from: 'sdd-analyze',  to: 'tasks-md',         type: 'consumes' },
+  { from: 'security-advisor', to: 'tf-files',     type: 'consumes' },
+  { from: 'quality-judge', to: 'tf-files',        type: 'consumes' },
+  { from: 'sdd-plan-draft', to: 'constitution',   type: 'consumes' },
+  { from: 'task-executor', to: 'terraform-mcp',   type: 'consumes' },
+  { from: 'sdd-clarify',  to: 'spec-md',          type: 'consumes' },
+];
+
+// ─── STATE ──────────────────────────────────────────────────────
+
+const cnv = document.getElementById('canvas');
+const ctx = cnv.getContext('2d');
+let W, H, dpr;
+
+const state = {
+  nodes: [],
+  edges: [],        // { from, to, type, user: bool }
+  knowledge: {},    // nodeId -> 'know' | 'fuzzy' | 'unknown'
+  visible: {},      // nodeId -> bool
+  edgeType: 'depends-on',
+  drawingFrom: null,
+  mouseX: 0, mouseY: 0,
+  dragging: null, dragOx: 0, dragOy: 0,
+  hovered: null,
+  activePreset: 'all',
+};
+
+// Initialize nodes with positions (circular layout by category)
+function initNodes() {
+  const catGroups = {};
+  conceptData.forEach(c => {
+    if (!catGroups[c.cat]) catGroups[c.cat] = [];
+    catGroups[c.cat].push(c);
+  });
+
+  const catKeys = Object.keys(catGroups);
+  const cx = 500, cy = 320;
+  const ringR = [0, 180, 310];
+
+  // Place categories in concentric arrangement
+  const catPositions = {
+    'workflow':   { ring: 0, angle: 0 },
+    'agent':      { ring: 1, angle: 0 },
+    'artifact':   { ring: 2, angle: Math.PI * 0.5 },
+    'infra':      { ring: 2, angle: Math.PI * 1.5 },
+    'pattern':    { ring: 2, angle: Math.PI },
+    'governance': { ring: 2, angle: 0 },
+  };
+
+  conceptData.forEach(c => {
+    const cp = catPositions[c.cat];
+    const group = catGroups[c.cat];
+    const idx = group.indexOf(c);
+    const count = group.length;
+    const spread = count > 1 ? 0.6 : 0;
+    const angleOffset = (idx - (count-1)/2) * (spread / Math.max(count-1, 1));
+    const baseAngle = cp.angle + angleOffset;
+    const r = ringR[cp.ring] + (cp.ring === 0 ? idx * 70 : 0);
+
+    state.nodes.push({
+      ...c,
+      x: cx + Math.cos(baseAngle) * r + (Math.random()-0.5)*40,
+      y: cy + Math.sin(baseAngle) * r + (Math.random()-0.5)*40,
+      r: 28,
+    });
+    state.knowledge[c.id] = 'fuzzy';
+    state.visible[c.id] = true;
+  });
+
+  // Copy pre-edges
+  preEdges.forEach(e => state.edges.push({ ...e, user: false }));
+}
+
+// ─── PRESETS ────────────────────────────────────────────────────
+
+const PRESETS = {
+  'all':        { label: 'All Concepts', cats: null },
+  'planning':   { label: 'Planning Phase', cats: ['workflow','agent','artifact','governance'], filter: id => ['sdd-pipeline','tf-plan','sdd-specify','sdd-research','sdd-clarify','sdd-plan-draft','sdd-tasks','sdd-analyze','spec-md','plan-md','tasks-md','contracts','constitution','quality-gates','module-first','skills-system'].includes(id) },
+  'implement':  { label: 'Implementation', cats: null, filter: id => ['tf-implement','task-executor','security-advisor','quality-judge','deployer','tf-files','hcp-terraform','private-registry','terraform-mcp','module-first','security-first','quality-gates','constitution'].includes(id) },
+  'infra':      { label: 'Infrastructure', cats: null, filter: id => ['hcp-terraform','private-registry','terraform-mcp','aws-mcp','module-first','mcp-first','task-executor','sdd-research','deployer'].includes(id) },
+  'learning':   { label: 'Learning Loop', cats: null, filter: id => ['tf-implement','compound-learning','memory-store','constitution','quality-gates','skills-system','parallel-safe'].includes(id) },
+};
+
+// ─── CANVAS RENDERING ───────────────────────────────────────────
+
+function resize() {
+  const rect = cnv.parentElement.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = rect.width; H = rect.height;
+  cnv.width = W * dpr; cnv.height = H * dpr;
+  cnv.style.width = W + 'px'; cnv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawEdge(e) {
+  const from = state.nodes.find(n => n.id === e.from);
+  const to = state.nodes.find(n => n.id === e.to);
+  if (!from || !to || !state.visible[from.id] || !state.visible[to.id]) return;
+
+  const et = EDGE_TYPES[e.type] || EDGE_TYPES['depends-on'];
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+  const ux = dx/dist, uy = dy/dist;
+
+  const sx = from.x + ux * from.r;
+  const sy = from.y + uy * from.r;
+  const ex = to.x - ux * to.r;
+  const ey = to.y - uy * to.r;
+
+  // Curved path
+  const perpX = -uy * 20, perpY = ux * 20;
+  const mx = (sx+ex)/2 + perpX, my = (sy+ey)/2 + perpY;
+
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.quadraticCurveTo(mx, my, ex, ey);
+  ctx.strokeStyle = et.color;
+  ctx.lineWidth = e.user ? 2 : 1.2;
+  ctx.globalAlpha = e.user ? 0.8 : 0.35;
+  if (e.user) ctx.setLineDash([]);
+  else ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // Arrowhead
+  const angle = Math.atan2(ey - my, ex - mx);
+  const aw = 8, ah = 5;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - aw*Math.cos(angle-0.4), ey - aw*Math.sin(angle-0.4));
+  ctx.lineTo(ex - aw*Math.cos(angle+0.4), ey - aw*Math.sin(angle+0.4));
+  ctx.closePath();
+  ctx.fillStyle = et.color;
+  ctx.globalAlpha = e.user ? 0.8 : 0.4;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Label at midpoint
+  if (e.user) {
+    const lx = mx, ly = my - 6;
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillStyle = et.color;
+    ctx.globalAlpha = 0.7;
+    ctx.textAlign = 'center';
+    ctx.fillText(et.label, lx, ly);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawNode(n) {
+  if (!state.visible[n.id]) return;
+  const cat = CATEGORIES[n.cat];
+  const k = state.knowledge[n.id];
+  const isHovered = state.hovered === n.id;
+  const isDrawSrc = state.drawingFrom === n.id;
+
+  // Glow
+  if (isHovered || isDrawSrc) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r + 6, 0, Math.PI * 2);
+    ctx.fillStyle = cat.color + '22';
+    ctx.fill();
+  }
+
+  // Circle
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+  ctx.fillStyle = '#0d1117';
+  ctx.fill();
+  ctx.strokeStyle = cat.color;
+  ctx.lineWidth = isHovered ? 2.5 : 1.5;
+  ctx.stroke();
+
+  // Knowledge ring
+  if (k === 'know') { ctx.strokeStyle = '#3fb950'; ctx.lineWidth = 3; }
+  else if (k === 'fuzzy') { ctx.strokeStyle = '#d29922'; ctx.lineWidth = 2; ctx.setLineDash([4,3]); }
+  else { ctx.strokeStyle = '#f85149'; ctx.lineWidth = 2; ctx.setLineDash([2,3]); }
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, n.r + 3, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Label
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#f0f6fc';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Wrap text
+  const words = n.label.split(/[-/ ]/);
+  if (n.label.length > 14 && words.length > 1) {
+    const mid = Math.ceil(words.length / 2);
+    const line1 = words.slice(0, mid).join(n.label.includes('/') ? '/' : '-');
+    const line2 = words.slice(mid).join(n.label.includes('/') ? '/' : '-');
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillText(line1, n.x, n.y - 6);
+    ctx.fillText(line2, n.x, n.y + 7);
+  } else {
+    ctx.fillText(n.label, n.x, n.y);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = '#161b22';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Edges
+  state.edges.forEach(e => drawEdge(e));
+
+  // Drawing line
+  if (state.drawingFrom) {
+    const from = state.nodes.find(n => n.id === state.drawingFrom);
+    if (from) {
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(state.mouseX, state.mouseY);
+      const et = EDGE_TYPES[state.edgeType];
+      ctx.strokeStyle = et.color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.globalAlpha = 0.6;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Nodes
+  state.nodes.forEach(n => drawNode(n));
+}
+
+// ─── HIT TESTING ────────────────────────────────────────────────
+
+function nodeAt(x, y) {
+  for (let i = state.nodes.length - 1; i >= 0; i--) {
+    const n = state.nodes[i];
+    if (!state.visible[n.id]) continue;
+    const dx = x - n.x, dy = y - n.y;
+    if (dx*dx + dy*dy <= (n.r+4)*(n.r+4)) return n;
+  }
+  return null;
+}
+
+function edgeAt(x, y) {
+  for (let i = state.edges.length - 1; i >= 0; i--) {
+    const e = state.edges[i];
+    const from = state.nodes.find(n => n.id === e.from);
+    const to = state.nodes.find(n => n.id === e.to);
+    if (!from || !to) continue;
+    // Check distance to line segment
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const t = Math.max(0, Math.min(1, ((x-from.x)*dx + (y-from.y)*dy) / (len*len)));
+    const px = from.x + t*dx, py = from.y + t*dy;
+    const d = Math.sqrt((x-px)*(x-px) + (y-py)*(y-py));
+    if (d < 8) return { edge: e, index: i };
+  }
+  return null;
+}
+
+// ─── MOUSE EVENTS ───────────────────────────────────────────────
+
+function getPos(e) {
+  const rect = cnv.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+cnv.addEventListener('mousedown', e => {
+  const p = getPos(e);
+  const n = nodeAt(p.x, p.y);
+
+  if (e.shiftKey && n) {
+    // Start edge drawing
+    if (state.drawingFrom && state.drawingFrom !== n.id) {
+      // Complete edge
+      const exists = state.edges.some(ed => ed.from === state.drawingFrom && ed.to === n.id && ed.type === state.edgeType);
+      if (!exists) {
+        state.edges.push({ from: state.drawingFrom, to: n.id, type: state.edgeType, user: true });
+      }
+      state.drawingFrom = null;
+      document.getElementById('edge-mode').classList.remove('active');
+      updateAll();
+    } else {
+      state.drawingFrom = n.id;
+      document.getElementById('edge-mode').classList.add('active');
+      draw();
+    }
+    return;
+  }
+
+  if (state.drawingFrom && n) {
+    // Complete edge on normal click too if we're in drawing mode
+    if (state.drawingFrom !== n.id) {
+      const exists = state.edges.some(ed => ed.from === state.drawingFrom && ed.to === n.id && ed.type === state.edgeType);
+      if (!exists) {
+        state.edges.push({ from: state.drawingFrom, to: n.id, type: state.edgeType, user: true });
+      }
+    }
+    state.drawingFrom = null;
+    document.getElementById('edge-mode').classList.remove('active');
+    updateAll();
+    return;
+  }
+
+  if (n) {
+    state.dragging = n;
+    state.dragOx = p.x - n.x;
+    state.dragOy = p.y - n.y;
+  }
+});
+
+cnv.addEventListener('mousemove', e => {
+  const p = getPos(e);
+  state.mouseX = p.x;
+  state.mouseY = p.y;
+
+  if (state.dragging) {
+    state.dragging.x = p.x - state.dragOx;
+    state.dragging.y = p.y - state.dragOy;
+    draw();
+    return;
+  }
+
+  const n = nodeAt(p.x, p.y);
+  const prevHovered = state.hovered;
+  state.hovered = n ? n.id : null;
+
+  if (n) {
+    const tt = document.getElementById('tooltip');
+    document.getElementById('tt-title').textContent = n.label;
+    document.getElementById('tt-path').textContent = n.path;
+    document.getElementById('tt-desc').textContent = n.desc;
+    tt.style.display = 'block';
+    tt.style.left = Math.min(p.x + 16, W - 280) + 'px';
+    tt.style.top = (p.y - 10) + 'px';
+    cnv.style.cursor = 'pointer';
+  } else {
+    document.getElementById('tooltip').style.display = 'none';
+    cnv.style.cursor = state.drawingFrom ? 'crosshair' : 'default';
+  }
+
+  if (prevHovered !== state.hovered || state.drawingFrom) draw();
+});
+
+cnv.addEventListener('mouseup', () => {
+  if (state.dragging) {
+    state.dragging = null;
+    updatePrompt();
+  }
+});
+
+cnv.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const p = getPos(e);
+  const hit = edgeAt(p.x, p.y);
+  if (hit && hit.edge.user) {
+    state.edges.splice(hit.index, 1);
+    updateAll();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && state.drawingFrom) {
+    state.drawingFrom = null;
+    document.getElementById('edge-mode').classList.remove('active');
+    draw();
+  }
+});
+
+// ─── FORCE-DIRECTED LAYOUT ─────────────────────────────────────
+
+function autoLayout() {
+  const visible = state.nodes.filter(n => state.visible[n.id]);
+  const cx = W/2, cy = H/2;
+
+  for (let iter = 0; iter < 200; iter++) {
+    const forces = {};
+    visible.forEach(n => forces[n.id] = { fx: 0, fy: 0 });
+
+    // Center gravity
+    visible.forEach(n => {
+      forces[n.id].fx += (cx - n.x) * 0.001;
+      forces[n.id].fy += (cy - n.y) * 0.001;
+    });
+
+    // Repulsion
+    for (let i = 0; i < visible.length; i++) {
+      for (let j = i+1; j < visible.length; j++) {
+        const a = visible[i], b = visible[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.sqrt(dx*dx + dy*dy) || 1;
+        const repulse = 8000 / (d * d);
+        const fx = (dx/d) * repulse, fy = (dy/d) * repulse;
+        forces[a.id].fx -= fx; forces[a.id].fy -= fy;
+        forces[b.id].fx += fx; forces[b.id].fy += fy;
+      }
+    }
+
+    // Attraction along edges
+    state.edges.forEach(e => {
+      const a = visible.find(n => n.id === e.from);
+      const b = visible.find(n => n.id === e.to);
+      if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.sqrt(dx*dx + dy*dy) || 1;
+      const attract = (d - 120) * 0.01;
+      const fx = (dx/d) * attract, fy = (dy/d) * attract;
+      forces[a.id].fx += fx; forces[a.id].fy += fy;
+      forces[b.id].fx -= fx; forces[b.id].fy -= fy;
+    });
+
+    // Apply with damping
+    const damping = 1 - iter/200;
+    visible.forEach(n => {
+      n.x += forces[n.id].fx * damping;
+      n.y += forces[n.id].fy * damping;
+      n.x = Math.max(40, Math.min(W - 40, n.x));
+      n.y = Math.max(40, Math.min(H - 40, n.y));
+    });
+  }
+
+  draw();
+}
+
+// ─── SIDEBAR CONTROLS ───────────────────────────────────────────
+
+function buildPresets() {
+  document.getElementById('presets').innerHTML = Object.entries(PRESETS).map(([k, p]) =>
+    `<button class="preset-btn ${state.activePreset===k?'active':''}" onclick="applyPreset('${k}')">${p.label}</button>`
+  ).join('');
+}
+
+function buildEdgeTypes() {
+  document.getElementById('edge-types').innerHTML = Object.entries(EDGE_TYPES).map(([k, et]) =>
+    `<button class="edge-type-btn ${state.edgeType===k?'active':''}" style="--ec:${et.color}" onclick="setEdgeType('${k}')">${et.label}</button>`
+  ).join('');
+}
+
+function buildNodeList() {
+  const el = document.getElementById('node-list');
+  // Sort by category then name
+  const sorted = [...state.nodes].sort((a,b) => a.cat.localeCompare(b.cat) || a.label.localeCompare(b.label));
+  el.innerHTML = sorted.map(n => {
+    const cat = CATEGORIES[n.cat];
+    const k = state.knowledge[n.id];
+    return `<div class="node-item">
+      <div class="swatch" style="background:${cat.color}"></div>
+      <span class="name" title="${n.desc}">${n.label}</span>
+      <button class="knowledge-btn ${k}" onclick="cycleKnowledge('${n.id}')">${KNOWLEDGE[k]}</button>
+      <button class="vis-btn ${state.visible[n.id]?'visible':''}" onclick="toggleVis('${n.id}')">${state.visible[n.id]?'&#128065;':'&#128064;'}</button>
+    </div>`;
+  }).join('');
+}
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  state.activePreset = key;
+  state.nodes.forEach(n => {
+    if (p.filter) state.visible[n.id] = p.filter(n.id);
+    else state.visible[n.id] = true;
+  });
+  updateAll();
+  setTimeout(autoLayout, 50);
+}
+
+function setEdgeType(k) {
+  state.edgeType = k;
+  buildEdgeTypes();
+}
+
+function cycleKnowledge(id) {
+  const order = ['fuzzy', 'know', 'unknown'];
+  const cur = state.knowledge[id];
+  state.knowledge[id] = order[(order.indexOf(cur) + 1) % 3];
+  updateAll();
+}
+
+function toggleVis(id) {
+  state.visible[id] = !state.visible[id];
+  state.activePreset = null;
+  updateAll();
+}
+
+function resetKnowledge() {
+  state.nodes.forEach(n => state.knowledge[n.id] = 'fuzzy');
+  updateAll();
+}
+
+function clearUserEdges() {
+  state.edges = state.edges.filter(e => !e.user);
+  updateAll();
+}
+
+// ─── PROMPT ─────────────────────────────────────────────────────
+
+function updatePrompt() {
+  const know = state.nodes.filter(n => state.visible[n.id] && state.knowledge[n.id] === 'know').map(n => n.label);
+  const fuzzy = state.nodes.filter(n => state.visible[n.id] && state.knowledge[n.id] === 'fuzzy').map(n => n.label);
+  const unknown = state.nodes.filter(n => state.visible[n.id] && state.knowledge[n.id] === 'unknown').map(n => n.label);
+  const userEdges = state.edges.filter(e => e.user);
+
+  const parts = [];
+  parts.push("I'm learning the AI-IaC Spec-Driven Development system for Terraform infrastructure provisioning.");
+  parts.push('');
+
+  if (know.length) parts.push(`I already understand: ${know.join(', ')}.`);
+  if (fuzzy.length) parts.push(`I'm fuzzy on: ${fuzzy.join(', ')}.`);
+  if (unknown.length) parts.push(`I have no idea about: ${unknown.join(', ')}.`);
+
+  if (userEdges.length) {
+    parts.push('');
+    parts.push('Here are the relationships I want to understand:');
+    userEdges.forEach(e => {
+      const from = state.nodes.find(n => n.id === e.from);
+      const to = state.nodes.find(n => n.id === e.to);
+      const et = EDGE_TYPES[e.type];
+      if (from && to) parts.push(`- ${from.label} ${et.label} ${to.label}`);
+    });
+  }
+
+  if (fuzzy.length || unknown.length) {
+    parts.push('');
+    parts.push('Please explain the fuzzy and unknown concepts, focusing on how they connect. Build on what I already know. Use concrete file paths and examples from the codebase.');
+  }
+
+  document.getElementById('prompt-text').textContent = parts.join('\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1500);
+}
+
+// ─── UPDATE ALL ─────────────────────────────────────────────────
+
+function updateAll() {
+  buildPresets();
+  buildEdgeTypes();
+  buildNodeList();
+  updatePrompt();
+  draw();
+}
+
+// ─── INIT ───────────────────────────────────────────────────────
+
+window.addEventListener('resize', () => { resize(); draw(); });
+initNodes();
+resize();
+autoLayout();
+updateAll();
+</script>
+</body>
+</html>

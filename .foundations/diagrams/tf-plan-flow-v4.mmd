@@ -1,0 +1,117 @@
+flowchart TB
+    %% ══════════════════════════════════════════════════════════════
+    %% tf-plan-flow.mmd — /tf-plan Workflow
+    %%
+    %% Color coding:
+    %%   Green   = Skills
+    %%   Blue    = Agents (workers invoked via Task tool)
+    %%   Purple  = Bash scripts
+    %%   Red     = Human gates
+    %% ══════════════════════════════════════════════════════════════
+
+    %% ══════════════════════════════════════════════════════════════
+    %% LEGEND
+    %% ══════════════════════════════════════════════════════════════
+    subgraph Legend[" Legend "]
+        direction LR
+        LS0(["Skill"])
+        LA0["Agent"]
+        LB0[["Script"]]
+        LG0{{"Human Gate"}}
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% ENTRY POINT
+    %% ══════════════════════════════════════════════════════════════
+    TFP(["/tf-plan"])
+    TFP --> P1
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 1 — SETUP
+    %% ══════════════════════════════════════════════════════════════
+    subgraph P1["Phase 1 — Setup"]
+        direction LR
+        P1a[["validate-env.sh"]]
+        P1b["Gather requirements\n+ create branch"]
+        P1a --> P1b
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 2 — SPECIFICATION
+    %% ══════════════════════════════════════════════════════════════
+    subgraph P2["Phase 2 — Specification"]
+        direction LR
+        K1(["tf-spec-writing"]) --> P2a["sdd-specify"]
+        K2(["tf-checklist-patterns"]) --> P2b["sdd-checklist"]
+        K3(["tf-domain-taxonomy"]) --> P2c["sdd-clarify"]
+        P2a --> P2b --> P2c
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 3 — RESEARCH + PLANNING
+    %% ══════════════════════════════════════════════════════════════
+    subgraph P3["Phase 3 — Research + Planning"]
+        direction LR
+        K4(["tf-research-heuristics"]) --> P3a["sdd-research\n×N parallel"]
+        K5(["tf-architecture-patterns"]) --> P3b["sdd-plan-draft\n×N parallel"]
+        K8a(["terraform-style-guide"]) --> P3b
+        P3a --> P3b
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 4 — TASKS + ANALYSIS
+    %% ══════════════════════════════════════════════════════════════
+    subgraph P4["Phase 4 — Tasks + Analysis"]
+        direction LR
+        K6(["tf-task-patterns"]) --> P4a["sdd-tasks\n×N parallel"]
+        K8b(["terraform-style-guide"]) --> P4a
+        K7(["tf-consistency-rules"]) --> P4b["sdd-analyze\n×N parallel"]
+        P4a --> P4b
+    end
+
+    %% ══════════════════════════════════════════════════════════════
+    %% PHASE 5 — PUBLISH
+    %% ══════════════════════════════════════════════════════════════
+    P5["Post to GitHub Issue"]
+
+    %% ══════════════════════════════════════════════════════════════
+    %% HUMAN GATE
+    %% ══════════════════════════════════════════════════════════════
+    Gate{{"Human Approval"}}
+
+    %% ══════════════════════════════════════════════════════════════
+    %% FLOW
+    %% ══════════════════════════════════════════════════════════════
+    P1 --> P2 --> P3 --> P4 --> P5 --> Gate
+
+    %% ══════════════════════════════════════════════════════════════
+    %% SCRIPTS (referenced by agents)
+    %% ══════════════════════════════════════════════════════════════
+    SCR1[["create-new-feature.sh"]]
+    P2a --> SCR1
+    SCR2[["setup-plan.sh"]]
+    P3b --> SCR2
+    SCR4[["post-issue-progress.sh"]]
+    P5 --> SCR4
+
+    %% ══════════════════════════════════════════════════════════════
+    %% STYLING
+    %% ══════════════════════════════════════════════════════════════
+    classDef skill fill:#d5f5e3,stroke:#27ae60,color:#000,stroke-width:2px
+    classDef agent fill:#d4e6f1,stroke:#2980b9,color:#000
+    classDef script fill:#e8daef,stroke:#8e44ad,color:#000
+    classDef gate fill:#fadbd8,stroke:#e74c3c,color:#000,stroke-width:2px
+
+    %% Skills
+    class TFP,LS0 skill
+    class K1,K2,K3,K4,K5,K6,K7,K8a,K8b skill
+    class P1b,P5 skill
+
+    %% Agents
+    class P2a,P2b,P2c,P3a,P3b,P4a,P4b,LA0 agent
+
+    %% Scripts
+    class P1a,SCR1,SCR2,SCR4,LB0 script
+
+    %% Gates
+    class Gate,LG0 gate

@@ -1,0 +1,31 @@
+{
+    "window.title": "${remoteName}",
+    "chat.promptFilesRecommendations": {
+    },
+    "terminal.integrated.shellIntegration.enabled": true,
+    "chat.agent.maxRequests": 256,
+    "chat.tools.terminal.enableAutoApprove": true,
+    "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace",
+    "chat.tools.terminal.autoApprove": {
+        ".foundations/scripts/bash/": true,
+        ".foundations/scripts/powershell/": true,
+        "/workspace/.foundations/scripts/bash/validate-env.sh": true,
+        "bash": true,
+        "pre-commit": true,
+        "git": true,
+        "ls": true,
+        "cd": true,
+        "cat": true,
+        "echo": true,
+        "mkdir": true,
+        "mv": true,
+        "terraform": true,
+        "sed": true,
+        "cut": true,
+        "aws": true,
+        "command": true,
+        "curl": true,
+        "rm": true,
+        "export": true
+    }
+}

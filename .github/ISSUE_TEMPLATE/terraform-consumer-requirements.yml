@@ -1,0 +1,132 @@
+name: "🎯 Module Feature Request"
+description: "Template for consumers of this module to request new features or capabilities"
+title: "[FEATURE REQUEST] "
+labels: ["feature-request", "module-enhancement", "needs-review"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Module Feature Request
+
+        Use this template to request new features, capabilities, or enhancements for this Terraform module.
+        This is intended for **consumers** of the module who need additional functionality.
+        Requests captured here will be triaged and may feed into the module development workflow via /specify.
+
+  - type: input
+    id: feature_name
+    attributes:
+      label: "📦 Feature Name"
+      description: "Brief name for the requested feature"
+      placeholder: "e.g., Add NAT Gateway support, Add VPC Flow Logs, Support IPv6"
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_requirements
+    attributes:
+      label: "🎯 Business Justification"
+      description: "Why is this feature needed? What problem does it solve for module consumers?"
+      placeholder: |
+        - Business problem this feature addresses
+        - Use cases that require this capability
+        - Impact if this feature is not available
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: "☁️ Cloud Provider"
+      description: "Cloud provider context for this feature"
+      options:
+        - AWS
+        - Azure
+        - GCP
+        - Multi-cloud
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: requested_resources
+    attributes:
+      label: "🏗️ Requested Resources / Capabilities"
+      description: "What new resources or capabilities should the module support?"
+      placeholder: |
+        Example:
+        - aws_nat_gateway (one per AZ for high availability)
+        - aws_eip (elastic IPs for NAT Gateways)
+        - New variable: enable_nat_gateway (bool, default: false)
+        - New output: nat_gateway_ids (list of NAT Gateway IDs)
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_interface
+    attributes:
+      label: "📥 Desired Module Interface"
+      description: "How would you like to use this feature? Show example module invocation."
+      placeholder: |
+        Example:
+        ```hcl
+        module "vpc" {
+          source = "app.terraform.io/myorg/vpc/aws"
+
+          name                = "my-vpc"
+          vpc_cidr            = "10.0.0.0/16"
+          enable_nat_gateway  = true   # <-- new feature
+          single_nat_gateway  = false  # <-- new feature
+        }
+        ```
+
+  - type: checkboxes
+    id: security_requirements
+    attributes:
+      label: "🔒 Security Requirements"
+      description: "Security considerations for this feature"
+      options:
+        - label: "Encryption at rest (KMS, customer-managed keys)"
+        - label: "Encryption in transit (TLS/SSL, HTTPS)"
+        - label: "Network isolation (Private subnets, Security Groups)"
+        - label: "IAM least privilege access"
+        - label: "Audit logging and monitoring"
+        - label: "No new public access paths"
+        - label: "Must support customer-managed KMS keys"
+
+  - type: textarea
+    id: compliance_standards
+    attributes:
+      label: "📋 Compliance Standards"
+      description: "Compliance frameworks this feature must support"
+      placeholder: |
+        Example:
+        - CIS AWS Foundations Benchmark
+        - SOC 2 Type II
+        - Company security policies
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "✅ Acceptance Criteria"
+      description: "How will you validate this feature works correctly?"
+      placeholder: |
+        Example:
+        - Feature can be enabled/disabled via boolean variable
+        - terraform plan shows expected resources when enabled
+        - terraform plan shows no resources when disabled
+        - All existing tests continue to pass
+        - New .tftest.hcl tests cover the feature
+        - Documentation updated with new inputs/outputs
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: "📄 Additional Context"
+      description: "Any additional information, constraints, or requirements"
+      placeholder: |
+        Example:
+        - Our team deploys this module in 3 regions
+        - We currently work around this by creating resources outside the module
+        - Timeline: needed before Q3 deployment
+        - Willing to contribute a PR if design is approved
