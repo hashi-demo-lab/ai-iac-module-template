@@ -5,6 +5,7 @@ model: opus
 color: blue
 skills:
   - tf-spec-writing
+  - tf-security-baselines
 tools:
   - Bash
   - Read
@@ -22,7 +23,7 @@ Draft a Terraform module feature specification from structured requirements, foc
 ## Workflow
 
 1. **Initialize**: Run `.foundations/scripts/bash/create-new-feature.sh --json`
-2. **Load**: Load `.foundations/memory/constitution.md` for security defaults (§1.2), module structure (§3.2), and variable conventions (§3.4) to inform requirement drafting
+2. **Load**: Load `.foundations/memory/constitution.md` for security defaults (§1.2), module structure (§3.2), and variable conventions (§3.4). Cross-reference `.claude/skills/tf-security-baselines/SKILL.md` §Security Domains to ensure spec includes FRs for each applicable domain (data protection, logging, access control).
 3. **Draft**: Populate the `spec.md` created by the script, following `tf-spec-writing` skill patterns
 4. **Validate**: Confirm all mandatory sections present, requirements testable, success criteria measurable, no implementation leakage
 
@@ -32,7 +33,7 @@ Write `specs/{FEATURE}/spec.md` using the template at `.foundations/templates/sp
 
 When specifying module features, include:
 
-- **Module Interface Requirements**: List key input variable *names* and output *names* the module must accept/expose, plus feature flags. Do NOT include a full variable table with types/defaults/descriptions -- that belongs in `contracts/module-interfaces.md`.
+- **Module Interface Requirements**: List key input variable _names_ and output _names_ the module must accept/expose, plus feature flags. Do NOT include a full variable table with types/defaults/descriptions -- that belongs in `contracts/module-interfaces.md`.
 - **Feature Capabilities**: What the module creates, configures, or manages -- described in terms of outcomes, not resources
 - **Security Requirements**: Secure defaults expected (encryption, access control, logging) without naming specific resource arguments
 
@@ -47,16 +48,19 @@ When specifying module features, include:
 ## Examples
 
 **Good requirement** (module capability):
+
 ```markdown
 - FR-003: Network traffic between application and database tiers must be restricted to only the required ports and protocols, with all other traffic denied by default.
 ```
 
 **Good requirement** (module interface):
+
 ```markdown
 - FR-007: The module must accept a list of allowed CIDR blocks for ingress and default to no external access when none are provided.
 ```
 
 **Bad requirement** (implementation leakage):
+
 ```markdown
 - FR-003: Configure aws_security_group resources to allow port 5432 from the app subnet CIDR to the RDS instance using ingress rules.
 ```
