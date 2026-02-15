@@ -51,6 +51,7 @@ Generate an actionable, dependency-ordered task breakdown from planning artifact
 - **Independent phases**: Each phase must be a complete, independently testable increment
 - **Constitution coverage**: Cross-reference `.foundations/memory/constitution.md` §3.2 for mandatory file list
 - **Resource wiring**: Each cross-resource data flow entry from module-interfaces.md produces a task wiring output to input
+- **FR test coverage**: Every FR that changes observable module behavior MUST have a corresponding test task in the Testing phase referencing that FR
 
 ## Examples
 
