@@ -16,8 +16,8 @@ Provision using Terraform:
 
 ## HCP Terraform Configuration
 
-- **Organization**: `<your-org-name>`
-- **Project**: `<your-project>`
+- **Organization**: `hashi-demos-apj`
+- **Project**: `sandbox`
 - **Workspace**: `sandbox_elastic<GITHUB_REPO_NAME>`
 
 ## Workflow Instructions

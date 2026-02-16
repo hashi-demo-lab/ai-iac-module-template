@@ -36,7 +36,7 @@ bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "Research" "
 
 ### Phase 4 — Security Review
 1. Run aws-security-advisor subagent with FEATURE path. Verify `specs/{FEATURE}/reports/security-review.md` exists.
-2. Grep `specs/{FEATURE}/reports/security-review.md` for `Critical` severity. If Critical findings exist, flag to user before proceeding.
+2. Grep `specs/{FEATURE}/reports/security-review.md` for `Critical` severity. If Critical findings exist, flag to user before proceeding. If any findings require new FRs in spec.md, also update plan.md architectural decisions, contracts/module-interfaces.md variable/output tables, and contracts/data-model.md entity list before proceeding to Phase 5.
 
 ### Phase 5 — Tasks Generation
 1. Run sdd-tasks subagent with FEATURE path. Verify `specs/{FEATURE}/tasks.md` exists.
@@ -44,7 +44,7 @@ bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "Research" "
 ### Phase 6 — Analysis + Remediation
 
 Max **3 iterations**:
-0. Scan `checklists/*.md`, mark answerable items as `[x]` or flag gaps as findings.
+0. Systematically resolve every item in `checklists/*.md`: mark answered items `[x]` with a one-line rationale, mark items exposing gaps as `[!]` with the gap noted. All items must be resolved before running sdd-analyze.
 1. Run sdd-analyze subagent with FEATURE path. Verify `specs/{FEATURE}/evaluations/consistency-analysis.md` exists.
 2. If no Critical, High or Medium findings → proceed to Phase 7.
 3. If Critical, High or Medium findings exist:

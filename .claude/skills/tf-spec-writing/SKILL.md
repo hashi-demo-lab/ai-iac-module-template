@@ -48,6 +48,8 @@ Criteria must be:
 - Conditional creation: All major resource groups toggleable
 - Data retention: Industry-standard practices
 
+For each default listed above, the spec MUST include an explicit FR requiring that behavior as a secure default.
+
 ## Module-Specific Patterns
 
 For module specifications:

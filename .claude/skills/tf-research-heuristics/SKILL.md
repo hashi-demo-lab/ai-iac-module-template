@@ -13,6 +13,7 @@ When developing module resources, research in this order:
 2. **Provider Documentation** — Understand resource arguments, attributes, and behavior
 3. **Public Registry Patterns** — Study well-regarded modules for design conventions and interfaces
 4. **Private Registry** — Check if the organization has existing modules to learn from or avoid duplication
+5. **Security-Adjacent Resources** — For each resource in the module, research what companion resources AWS recommends for security (e.g., bucket policies for TLS enforcement, ownership controls, access logging). Use `search_documentation("[service] security best practices")`.
 
 ## Provider Documentation Strategy
 
