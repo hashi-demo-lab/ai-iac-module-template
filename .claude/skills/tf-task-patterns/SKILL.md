@@ -39,7 +39,7 @@ Transform plan.md into dependency-ordered, checklist-format tasks organized by i
 - Every task: `- [ ] T### [US#?] Description with file path`
 - Include checkpoint markers after each phase
 - Document circular dependencies explicitly
-- **Testing phase is MANDATORY** — every tasks.md must include test tasks
+- **Testing phase is MANDATORY** — every behavioral FR must map to at least one test task. The Requirements Coverage Matrix must show test task IDs for each FR.
 
 ## Examples
 

@@ -29,6 +29,8 @@ description: >
 
 ## Critical Report Sections
 
+Target 300 lines maximum. Use tables over prose. Omit passing checks — report only findings, warnings, and metrics.
+
 ### Workarounds vs Fixes
 Distinguish tech debt (workarounds) from resolved issues (fixes):
 - **Workarounds**: What, why, impact, priority, effort for future fix
