@@ -1,9 +1,6 @@
 ---
 name: terraform-test
-description: >
-  Comprehensive guide for writing and running Terraform tests. Use when creating
-  test files (.tftest.hcl), writing test scenarios with run blocks, validating
-  infrastructure behavior, mocking providers, and troubleshooting test execution.
+description: Comprehensive guide for writing and running Terraform tests. Use when creating test files (.tftest.hcl), writing test scenarios with run blocks, validating infrastructure behavior, mocking providers, and troubleshooting test execution.
 ---
 
 # Terraform Test
@@ -12,15 +9,15 @@ Terraform's built-in testing framework enables module authors to validate that c
 
 ## Core Concepts
 
-| Concept | Description |
-|---------|-------------|
-| **Test File** | `.tftest.hcl` or `.tftest.json` file containing test configuration and run blocks |
-| **Test Block** | Optional block for test-wide settings like parallel execution (since v1.6.0) |
-| **Run Block** | Defines a single test scenario with variables, providers, and assertions |
-| **Assert Block** | Condition that must evaluate to true for the test to pass |
-| **Mock Provider** | Simulates provider behavior without real infrastructure (since v1.7.0) |
-| **Plan Mode** | `command = plan` - validates logic without creating resources (unit test) |
-| **Apply Mode** | `command = apply` (default) - creates real infrastructure (integration test) |
+| Concept           | Description                                                                       |
+| ----------------- | --------------------------------------------------------------------------------- |
+| **Test File**     | `.tftest.hcl` or `.tftest.json` file containing test configuration and run blocks |
+| **Test Block**    | Optional block for test-wide settings like parallel execution (since v1.6.0)      |
+| **Run Block**     | Defines a single test scenario with variables, providers, and assertions          |
+| **Assert Block**  | Condition that must evaluate to true for the test to pass                         |
+| **Mock Provider** | Simulates provider behavior without real infrastructure (since v1.7.0)            |
+| **Plan Mode**     | `command = plan` - validates logic without creating resources (unit test)         |
+| **Apply Mode**    | `command = apply` (default) - creates real infrastructure (integration test)      |
 
 ## File Structure
 
@@ -36,6 +33,7 @@ my-module/
 ```
 
 A test file contains:
+
 - **Zero to one** `test` block (settings)
 - **One to many** `run` blocks (test executions)
 - **Zero to one** `variables` block (input values)
@@ -71,17 +69,17 @@ run "test_name" {
 
 **Run Block Attributes:**
 
-| Attribute | Description |
-|-----------|-------------|
-| `command` | `apply` (default) or `plan` |
-| `plan_options` | Configure plan behavior: `mode`, `refresh`, `replace`, `target` |
-| `variables` | Override test-level variable values |
-| `module` | Reference alternate modules (`source`, `version`) |
-| `providers` | Customize provider availability |
-| `assert` | Validation conditions (multiple allowed) |
-| `expect_failures` | Specify expected validation failures |
-| `state_key` | Manage state file isolation (since v1.9.0) |
-| `parallel` | Enable parallel execution (since v1.9.0) |
+| Attribute         | Description                                                     |
+| ----------------- | --------------------------------------------------------------- |
+| `command`         | `apply` (default) or `plan`                                     |
+| `plan_options`    | Configure plan behavior: `mode`, `refresh`, `replace`, `target` |
+| `variables`       | Override test-level variable values                             |
+| `module`          | Reference alternate modules (`source`, `version`)               |
+| `providers`       | Customize provider availability                                 |
+| `assert`          | Validation conditions (multiple allowed)                        |
+| `expect_failures` | Specify expected validation failures                            |
+| `state_key`       | Manage state file isolation (since v1.9.0)                      |
+| `parallel`        | Enable parallel execution (since v1.9.0)                        |
 
 ## Variables
 
@@ -170,6 +168,7 @@ run "test_with_mocks" {
 ## Parallel Execution
 
 Requirements for `parallel = true`:
+
 - No inter-run output references
 - Different state files (via different modules or `state_key`)
 - A non-parallel run block after parallel ones creates a synchronization point
@@ -220,11 +219,11 @@ terraform test -no-cleanup                        # Skip cleanup (debug)
 
 ## Version Requirements
 
-| Version | Feature |
-|---------|---------|
-| 1.6.0 | Terraform test introduced |
-| 1.7.0 | Mock providers added |
-| 1.9.0 | `state_key` and `parallel` attributes |
+| Version | Feature                               |
+| ------- | ------------------------------------- |
+| 1.6.0   | Terraform test introduced             |
+| 1.7.0   | Mock providers added                  |
+| 1.9.0   | `state_key` and `parallel` attributes |
 
 ## Example: Complete Unit Test File
 
@@ -282,12 +281,14 @@ run "test_invalid_cidr" {
 ## References
 
 For detailed examples and patterns, see:
+
 - [Run Block Patterns](references/run-block-patterns.md) - Detailed run block configurations
 - [Assertion Patterns](references/assertion-patterns.md) - Assert and expect_failures examples
 - [Mock Patterns](references/mock-patterns.md) - Provider and data source mocking
 - [Troubleshooting](references/troubleshooting.md) - Common issues, CI/CD integration
 
 External documentation:
+
 - [Terraform Testing Documentation](https://developer.hashicorp.com/terraform/language/tests)
 - [Terraform Test Command Reference](https://developer.hashicorp.com/terraform/cli/commands/test)
 - [Testing Best Practices](https://developer.hashicorp.com/terraform/language/tests/best-practices)
